@@ -30,7 +30,7 @@ async function onSubmit(): Promise<void> {
 </script>
 
 <template>
-  <AuthLayout title="Quên mật khẩu" stamp="鍵">
+  <AuthLayout title="Quên mật khẩu">
     <p v-if="notice" class="muted" role="status">{{ notice }}</p>
     <form v-else novalidate @submit.prevent="onSubmit">
       <div class="field">

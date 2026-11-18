@@ -38,7 +38,7 @@ async function onSubmit(): Promise<void> {
 </script>
 
 <template>
-  <AuthLayout title="Đặt lại mật khẩu" stamp="鍵">
+  <AuthLayout title="Đặt lại mật khẩu">
     <p v-if="!hasValidToken" class="error" role="alert">Liên kết đặt lại mật khẩu không hợp lệ.</p>
     <form v-else novalidate @submit.prevent="onSubmit">
       <div class="field">

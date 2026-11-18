@@ -128,7 +128,10 @@ async function logout(): Promise<void> {
 <template>
   <main class="app-page">
     <header class="app-header">
-      <div class="brand"><span class="brand-mark">験</span><span>JLPT Trainer</span></div>
+      <div class="brand">
+        <img src="/jlpt-mark.svg" width="32" height="32" alt="" />
+        <span>JLPT Trainer</span>
+      </div>
       <div class="account">
         <RouterLink class="text-button" :to="{ name: 'review' }">Ôn tập</RouterLink>
         <RouterLink class="text-button" :to="{ name: 'change-password' }">Đổi mật khẩu</RouterLink>

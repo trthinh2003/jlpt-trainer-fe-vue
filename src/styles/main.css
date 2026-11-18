@@ -54,10 +54,13 @@ p {
   max-width: 390px;
   padding: 44px 36px 36px;
 }
-.stamp {
+.auth-logo {
   position: absolute;
   top: -20px;
   right: 28px;
+  transform: rotate(-8deg);
+}
+.stamp {
   display: grid;
   place-items: center;
   width: 56px;
@@ -69,7 +72,6 @@ p {
     700 22px "Shippori Mincho",
     serif;
   background: #faf8f2;
-  transform: rotate(-8deg);
 }
 h1,
 h2 {
@@ -169,15 +171,6 @@ h2 {
   font:
     700 18px "Shippori Mincho",
     serif;
-}
-.brand-mark {
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  border: 1.5px solid #b7282e;
-  border-radius: 50%;
-  color: #b7282e;
 }
 .account {
   font-size: 13px;

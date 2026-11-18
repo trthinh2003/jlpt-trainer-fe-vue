@@ -41,7 +41,7 @@ async function onSubmit(): Promise<void> {
 </script>
 
 <template>
-  <AuthLayout title="Đổi mật khẩu" stamp="鍵">
+  <AuthLayout title="Đổi mật khẩu">
     <form novalidate @submit.prevent="onSubmit">
       <div class="field">
         <label for="current-password">Mật khẩu hiện tại</label>

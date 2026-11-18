@@ -6,10 +6,10 @@ Frontend Vue 3 (Composition API), TypeScript và Vite cho JLPT Trainer.
 
 Yêu cầu Node.js 20.19+ hoặc 22.12+ và .NET SDK phù hợp với dự án API.
 
-1. Chạy API bằng profile HTTPS (cổng `7017`):
+1. Từ thư mục frontend, mở một terminal cho API. Thiết lập PostgreSQL, JWT và áp migration theo [README backend](../../backend/README.md), sau đó chạy profile HTTPS ở cổng `7017`.
 
    ```powershell
-   cd ..\jlpt-trainer-api\jlpt-trainer-api-main
+   cd ..\..\backend
    dotnet run --project src\JlptTrainer.Api --launch-profile https
    ```
 
@@ -37,13 +37,22 @@ src/
   features/
     auth/            API, phiên đăng nhập, trang đăng nhập/đăng ký
     vocab/           API, kiểu dữ liệu, trang quản lý từ vựng
+    review/          API thẻ ôn và trang ôn các thẻ đến hạn
   shared/
     api/             HTTP client và xử lý lỗi chung
     types/           Kiểu dữ liệu dùng chung, enum backend
   styles/            CSS toàn ứng dụng
 ```
 
-Các feature khác có thể bổ sung theo cùng mẫu `features/<tên>/api`, `pages`, `types.ts`. Kiểu dữ liệu cho kanji, ngữ pháp và review card đã được giữ trong `shared/types/api.ts` để dùng khi xây các màn tương ứng.
+Các feature khác có thể bổ sung theo cùng mẫu `features/<tên>/api`, `pages`, `types.ts`.
+
+## Ôn từ vựng
+
+Đăng nhập, chọn **Thêm vào bộ ôn** ở một từ vựng rồi mở **Ôn tập**. Chọn **Hiện đáp án** và chấm mức nhớ để server cập nhật lịch ôn. Trang tải theo lượt tối đa 20 thẻ và hiển thị các thẻ từ vựng, kanji hoặc ngữ pháp đã có trong bộ ôn.
+
+## Đổi mật khẩu
+
+Chọn **Đổi mật khẩu** ở đầu trang kho từ vựng. Nhập mật khẩu hiện tại, mật khẩu mới và xác nhận. Sau khi lưu, đăng nhập lại bằng mật khẩu mới. Các phiên cũ sẽ bị từ chối ở lần gọi API tiếp theo.
 
 ## Cấu hình API
 

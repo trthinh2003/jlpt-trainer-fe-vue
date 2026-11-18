@@ -13,8 +13,8 @@ export const vocabApi = {
     if (params.level != null) query.set('level', String(params.level))
     return request(`${path}?${query}`)
   },
-  getById(id: string): Promise<Vocab> {
-    return request(`${path}/${encodeURIComponent(id)}`)
+  getById(id: string, signal?: AbortSignal): Promise<Vocab> {
+    return request(`${path}/${encodeURIComponent(id)}`, { signal })
   },
   create(payload: CreateVocabRequest): Promise<string> {
     return request(path, { method: 'POST', body: JSON.stringify(payload) })

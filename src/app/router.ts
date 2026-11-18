@@ -23,6 +23,18 @@ export const router = createRouter({
       component: () => import('@/features/vocab/pages/VocabPage.vue'),
       meta: { requiresAuth: true },
     },
+    {
+      path: '/review',
+      name: 'review',
+      component: () => import('@/features/review/pages/ReviewPage.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/account/password',
+      name: 'change-password',
+      component: () => import('@/features/auth/pages/ChangePasswordPage.vue'),
+      meta: { requiresAuth: true },
+    },
     { path: '/:pathMatch(.*)*', redirect: '/' },
   ],
 })

@@ -2,8 +2,9 @@
 import { reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { clearSession, useSession } from '@/features/auth/store/session'
-import { getErrorMessage } from '@/shared/api/http'
-import { JlptLevel, type PagedResult } from '@/shared/types/api'
+import { reviewApi } from '@/features/review/api/review.api'
+import { ApiError, getErrorMessage } from '@/shared/api/http'
+import { CardType, JlptLevel, type PagedResult } from '@/shared/types/api'
 import { vocabApi } from '../api/vocab.api'
 import type { Vocab } from '../types'
 
@@ -18,6 +19,9 @@ const listError = ref('')
 const actionError = ref('')
 const isSaving = ref(false)
 const deletingId = ref<string | null>(null)
+const addingToReview = ref(new Set<string>())
+const inReview = ref(new Set<string>())
+const reviewError = ref('')
 const showCreateForm = ref(false)
 const form = reactive({
   word: '',
@@ -39,7 +43,11 @@ async function loadVocabs(): Promise<void> {
       pageNumber: page.value,
       pageSize: 20,
     })
-    if (currentRequest === requestId) result.value = data
+    if (currentRequest === requestId) {
+      const lastPage = Math.max(1, data.totalPages)
+      if (page.value > lastPage) page.value = lastPage
+      else result.value = data
+    }
   } catch (error) {
     if (currentRequest === requestId) listError.value = getErrorMessage(error)
   } finally {
@@ -81,17 +89,33 @@ async function createVocab(): Promise<void> {
 }
 
 async function deleteVocab(vocab: Vocab): Promise<void> {
-  if (!window.confirm(`Xóa từ "${vocab.word}"?`)) return
+  if (deletingId.value || addingToReview.value.has(vocab.id)) return
+  if (!window.confirm(`Xóa từ "${vocab.word}" khỏi kho chung và bộ ôn liên quan?`)) return
   deletingId.value = vocab.id
   actionError.value = ''
   try {
     await vocabApi.delete(vocab.id)
-    if (result.value?.items.length === 1 && page.value > 1) page.value -= 1
-    else await loadVocabs()
+    inReview.value.delete(vocab.id)
+    await loadVocabs()
   } catch (error) {
     actionError.value = getErrorMessage(error)
   } finally {
     deletingId.value = null
+  }
+}
+
+async function addToReview(vocab: Vocab): Promise<void> {
+  if (deletingId.value === vocab.id || addingToReview.value.has(vocab.id) || inReview.value.has(vocab.id)) return
+  addingToReview.value.add(vocab.id)
+  reviewError.value = ''
+  try {
+    await reviewApi.add(CardType.Vocab, vocab.id)
+    inReview.value.add(vocab.id)
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 409) inReview.value.add(vocab.id)
+    else reviewError.value = `Không thể thêm “${vocab.word}” vào bộ ôn. ${getErrorMessage(error)}`
+  } finally {
+    addingToReview.value.delete(vocab.id)
   }
 }
 
@@ -106,6 +130,8 @@ async function logout(): Promise<void> {
     <header class="app-header">
       <div class="brand"><span class="brand-mark">験</span><span>JLPT Trainer</span></div>
       <div class="account">
+        <RouterLink class="text-button" :to="{ name: 'review' }">Ôn tập</RouterLink>
+        <RouterLink class="text-button" :to="{ name: 'change-password' }">Đổi mật khẩu</RouterLink>
         <span>{{ currentUser?.displayName }}</span>
         <button class="text-button" type="button" @click="logout">Đăng xuất</button>
       </div>
@@ -151,6 +177,7 @@ async function logout(): Promise<void> {
       </div>
 
       <p v-if="actionError && !showCreateForm" class="error" role="alert">{{ actionError }}</p>
+      <p v-if="reviewError" class="error" role="alert">{{ reviewError }}</p>
       <p v-if="listError" class="error" role="alert">{{ listError }} <button class="text-button" @click="loadVocabs">Thử lại</button></p>
       <p v-else-if="isLoading" class="muted status">Đang tải từ vựng...</p>
       <p v-else-if="result?.items.length === 0" class="muted status">Chưa có từ vựng ở cấp độ này.</p>
@@ -163,9 +190,17 @@ async function logout(): Promise<void> {
               <p class="meaning">{{ vocab.meaning }}</p>
               <p v-if="vocab.exampleSentence" class="example">{{ vocab.exampleSentence }}<span v-if="vocab.exampleSentenceMeaning"> — {{ vocab.exampleSentenceMeaning }}</span></p>
             </div>
-            <button class="text-button danger" type="button" :disabled="deletingId === vocab.id" @click="deleteVocab(vocab)">
-              {{ deletingId === vocab.id ? 'Đang xóa...' : 'Xóa' }}
-            </button>
+            <div class="vocab-actions">
+              <button
+                class="text-button" type="button"
+                :disabled="inReview.has(vocab.id) || addingToReview.has(vocab.id) || deletingId === vocab.id"
+                @click="addToReview(vocab)"
+              >{{ inReview.has(vocab.id) ? 'Đã có trong bộ ôn' : addingToReview.has(vocab.id) ? 'Đang thêm...' : 'Thêm vào bộ ôn' }}</button>
+              <button
+                class="text-button danger" type="button" :disabled="deletingId !== null || addingToReview.has(vocab.id)"
+                @click="deleteVocab(vocab)"
+              >{{ deletingId === vocab.id ? 'Đang xóa...' : 'Xóa' }}</button>
+            </div>
           </div>
         </article>
       </div>
@@ -178,3 +213,11 @@ async function logout(): Promise<void> {
     </div>
   </main>
 </template>
+
+<style scoped>
+.vocab-actions { display: flex; flex-wrap: wrap; gap: 4px 12px; justify-content: flex-end; }
+@media (max-width: 620px) {
+  .vocab-main { flex-direction: column; }
+  .vocab-actions { justify-content: flex-start; }
+}
+</style>

@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { authApi } from '../api/auth.api'
 import AuthLayout from '../components/AuthLayout.vue'
 import { setSession } from '../store/session'
-import { isValidEmail } from '../validation'
+import { isValidDisplayName, isValidEmail, isValidNewPassword, newPasswordHelp } from '../validation'
 import { getErrorMessage } from '@/shared/api/http'
 
 const router = useRouter()
@@ -14,11 +14,12 @@ const isSubmitting = ref(false)
 const errorMessage = ref('')
 
 async function onSubmit(): Promise<void> {
+  if (isSubmitting.value) return
   submitted.value = true
-  if (form.displayName.trim().length < 2 || !isValidEmail(form.email) || form.password.length < 6) return
+  errorMessage.value = ''
+  if (!isValidDisplayName(form.displayName) || !isValidEmail(form.email) || !isValidNewPassword(form.password)) return
 
   isSubmitting.value = true
-  errorMessage.value = ''
   try {
     const result = await authApi.register({
       displayName: form.displayName.trim(),
@@ -40,8 +41,14 @@ async function onSubmit(): Promise<void> {
     <form novalidate @submit.prevent="onSubmit">
       <div class="field">
         <label for="displayName">Tên hiển thị</label>
-        <input id="displayName" v-model="form.displayName" type="text" autocomplete="name" />
-        <small v-if="submitted && form.displayName.trim().length < 2" class="error">Tên hiển thị tối thiểu 2 ký tự.</small>
+        <input
+          id="displayName" v-model="form.displayName" type="text" autocomplete="name"
+          :aria-invalid="submitted && !isValidDisplayName(form.displayName)"
+          :aria-describedby="submitted && !isValidDisplayName(form.displayName) ? 'displayName-error' : undefined"
+        />
+        <small v-if="submitted && !isValidDisplayName(form.displayName)" id="displayName-error" class="error">
+          Tên hiển thị phải có từ 1 đến 100 ký tự.
+        </small>
       </div>
       <div class="field">
         <label for="email">Email</label>
@@ -50,8 +57,14 @@ async function onSubmit(): Promise<void> {
       </div>
       <div class="field">
         <label for="password">Mật khẩu</label>
-        <input id="password" v-model="form.password" type="password" autocomplete="new-password" />
-        <small v-if="submitted && form.password.length < 6" class="error">Mật khẩu tối thiểu 6 ký tự.</small>
+        <input
+          id="password" v-model="form.password" type="password" autocomplete="new-password"
+          aria-describedby="password-rules"
+          :aria-invalid="submitted && !isValidNewPassword(form.password)"
+        />
+        <small id="password-rules" :class="submitted && !isValidNewPassword(form.password) ? 'error' : 'muted'">
+          {{ newPasswordHelp }}
+        </small>
       </div>
       <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
       <button class="primary-button" type="submit" :disabled="isSubmitting">

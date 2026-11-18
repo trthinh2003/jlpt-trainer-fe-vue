@@ -15,11 +15,12 @@ const isSubmitting = ref(false)
 const errorMessage = ref('')
 
 async function onSubmit(): Promise<void> {
+  if (isSubmitting.value) return
   submitted.value = true
-  if (!isValidEmail(form.email) || form.password.length < 6) return
+  errorMessage.value = ''
+  if (!isValidEmail(form.email) || !form.password.trim()) return
 
   isSubmitting.value = true
-  errorMessage.value = ''
   try {
     const result = await authApi.login({ email: form.email.trim(), password: form.password })
     setSession(result)
@@ -37,6 +38,9 @@ async function onSubmit(): Promise<void> {
 
 <template>
   <AuthLayout title="Đăng nhập" stamp="験">
+    <p v-if="route.query.passwordChanged === '1'" class="muted" role="status">
+      Đã đổi mật khẩu. Vui lòng đăng nhập lại bằng mật khẩu mới.
+    </p>
     <form novalidate @submit.prevent="onSubmit">
       <div class="field">
         <label for="email">Email</label>
@@ -46,7 +50,7 @@ async function onSubmit(): Promise<void> {
       <div class="field">
         <label for="password">Mật khẩu</label>
         <input id="password" v-model="form.password" type="password" autocomplete="current-password" />
-        <small v-if="submitted && form.password.length < 6" class="error">Mật khẩu tối thiểu 6 ký tự.</small>
+        <small v-if="submitted && !form.password.trim()" class="error">Vui lòng nhập mật khẩu.</small>
       </div>
       <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
       <button class="primary-button" type="submit" :disabled="isSubmitting">

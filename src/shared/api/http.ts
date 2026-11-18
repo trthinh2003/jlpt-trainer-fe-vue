@@ -34,7 +34,7 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
   }
 
   if (!response.ok) {
-    if (response.status === 401 && !path.startsWith('/auth/')) {
+    if (response.status === 401 && path !== '/auth/login' && path !== '/auth/register') {
       clearSession()
       unauthorizedHandler?.()
     }

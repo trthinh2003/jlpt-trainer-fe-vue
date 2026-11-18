@@ -23,10 +23,6 @@ desktop.ini
 .idea/
 *.swp
 
-# Local agent instructions
-AGENTS.md
-AGENTS.override.md
-
 # Env / secrets
 .env
 .env.*

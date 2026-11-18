@@ -39,7 +39,9 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
       unauthorizedHandler?.()
     }
 
-    let message = 'Đã có lỗi xảy ra, vui lòng thử lại.'
+    let message = response.status === 429
+      ? 'Bạn đã gửi quá nhiều yêu cầu. Vui lòng đợi một phút rồi thử lại.'
+      : 'Đã có lỗi xảy ra, vui lòng thử lại.'
     try {
       const body: unknown = await response.json()
       if (typeof body === 'object' && body !== null && 'error' in body && typeof body.error === 'string') {

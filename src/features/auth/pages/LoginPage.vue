@@ -53,6 +53,7 @@ async function onSubmit(): Promise<void> {
         <small v-if="submitted && !form.password.trim()" class="error">Vui lòng nhập mật khẩu.</small>
       </div>
       <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
+      <RouterLink class="text-button" :to="{ name: 'forgot-password' }">Quên mật khẩu?</RouterLink>
       <button class="primary-button" type="submit" :disabled="isSubmitting">
         {{ isSubmitting ? 'Đang đăng nhập...' : 'Đăng nhập' }}
       </button>

@@ -54,6 +54,8 @@ Các feature khác có thể bổ sung theo cùng mẫu `features/<tên>/api`, `
 
 Chọn **Đổi mật khẩu** ở đầu trang kho từ vựng. Nhập mật khẩu hiện tại, mật khẩu mới và xác nhận. Sau khi lưu, đăng nhập lại bằng mật khẩu mới. Các phiên cũ sẽ bị từ chối ở lần gọi API tiếp theo.
 
+Nếu chưa đăng nhập, chọn **Quên mật khẩu?** trên trang đăng nhập. Backend gửi link tới email đã đăng ký khi Gmail SMTP đã được cấu hình. [Cấu hình Gmail và migration](../../backend/README.md#quên-mật-khẩu-qua-gmail).
+
 ## Cấu hình API
 
 `VITE_API_BASE_URL` mặc định là `/api`. Với bản triển khai, cấu hình reverse proxy cho `/api` hoặc đặt biến này thành URL API phù hợp trước khi build. File `.env.example` là mẫu cấu hình; không đặt token hoặc secret vào biến Vite.

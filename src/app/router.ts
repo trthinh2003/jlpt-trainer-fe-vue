@@ -18,6 +18,16 @@ export const router = createRouter({
       meta: { guestOnly: true },
     },
     {
+      path: '/forgot-password',
+      name: 'forgot-password',
+      component: () => import('@/features/auth/pages/ForgotPasswordPage.vue'),
+    },
+    {
+      path: '/reset-password',
+      name: 'reset-password',
+      component: () => import('@/features/auth/pages/ResetPasswordPage.vue'),
+    },
+    {
       path: '/vocabs',
       name: 'vocabs',
       component: () => import('@/features/vocab/pages/VocabPage.vue'),

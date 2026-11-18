@@ -1,63 +1,65 @@
 # JLPT Trainer Frontend
 
-Frontend Vue 3 (Composition API), TypeScript và Vite cho JLPT Trainer.
+**English** | [日本語](README.ja.md) | [Tiếng Việt](README.vi.md)
 
-## Chạy local
+The JLPT Trainer learning interface, built with Vue 3, the Composition API, TypeScript, and Vite. The app uses the companion [ASP.NET Core backend](https://github.com/trthinh2003/jlpt-trainer-api/blob/main/README.md).
 
-Yêu cầu Node.js 20.19+ hoặc 22.12+ và .NET SDK phù hợp với dự án API.
+## Run locally
 
-1. Từ thư mục frontend, mở một terminal cho API. Thiết lập PostgreSQL, JWT và áp migration theo [README backend](../../backend/README.md), sau đó chạy profile HTTPS ở cổng `7017`.
+The frontend requires Node.js 20.19+ or 22.12+. The API requires the .NET SDK specified in its README.
+
+1. Use a separate terminal for the API. Set up PostgreSQL and JWT, apply the database migrations, and start the API with the HTTPS profile on port `7017`. The `cd` command assumes the backend is at `Project3/backend` and this repository is at `Project3/frontend/jlpt-trainer-fe-vue`. [Backend setup](https://github.com/trthinh2003/jlpt-trainer-api/blob/main/README.md#run-locally).
 
    ```powershell
    cd ..\..\backend
    dotnet run --project src\JlptTrainer.Api --launch-profile https
    ```
 
-2. Ở thư mục frontend:
+2. In the frontend directory, install dependencies and start Vite.
 
    ```powershell
    npm ci
    npm run dev
    ```
 
-Mở `http://localhost:5173`. Vite proxy các request `/api` tới `https://localhost:7017`, nên không cần sửa CORS trong API khi phát triển local.
+Open `http://localhost:5173`. Vite proxies `/api` to `https://localhost:7017`, so the local Vue app can use the API with its existing CORS settings.
 
-## Lệnh
+## Commands
 
-- `npm run dev`: chạy development server.
-- `npm run typecheck`: kiểm tra TypeScript và Vue SFC.
-- `npm run build`: kiểm tra kiểu và tạo `dist/`.
-- `npm run preview`: xem bản build local.
+- `npm run dev` starts the development server.
+- `npm run typecheck` checks TypeScript and Vue single-file components.
+- `npm run build` checks types and writes the production build to `dist/`.
+- `npm run preview` serves the production build locally.
 
-## Cấu trúc `src`
+## Source layout
 
 ```text
 src/
-  app/              App và router
+  app/              App and router
   features/
-    auth/            API, phiên đăng nhập, trang đăng nhập/đăng ký
-    vocab/           API, kiểu dữ liệu, trang quản lý từ vựng
-    review/          API thẻ ôn và trang ôn các thẻ đến hạn
+    auth/            Auth API, session state, and account pages
+    vocab/           Vocabulary API, types, and catalog page
+    review/          Review-card API and due-card page
   shared/
-    api/             HTTP client và xử lý lỗi chung
-    types/           Kiểu dữ liệu dùng chung, enum backend
-  styles/            CSS toàn ứng dụng
+    api/             HTTP client and error handling
+    types/           Shared types and backend enums
+  styles/            Global CSS
 ```
 
-Các feature khác có thể bổ sung theo cùng mẫu `features/<tên>/api`, `pages`, `types.ts`.
+New features can follow the same layout under `features/<name>`, with `api/`, `pages/`, and `types.ts` as needed.
 
-## Ôn từ vựng
+## Review study cards
 
-Đăng nhập, chọn **Thêm vào bộ ôn** ở một từ vựng rồi mở **Ôn tập**. Chọn **Hiện đáp án** và chấm mức nhớ để server cập nhật lịch ôn. Trang tải theo lượt tối đa 20 thẻ và hiển thị các thẻ từ vựng, kanji hoặc ngữ pháp đã có trong bộ ôn.
+Sign in, choose **Thêm vào bộ ôn** (Add to review) on a vocabulary item, then open **Ôn tập** (Review). Choose **Hiện đáp án** (Show answer) and rate how well you remembered the card. The server calculates the next review time. Each batch shows up to 20 due vocabulary, kanji, or grammar cards from your review queue.
 
-## Đổi mật khẩu
+## Change or reset a password
 
-Chọn **Đổi mật khẩu** ở đầu trang kho từ vựng. Nhập mật khẩu hiện tại, mật khẩu mới và xác nhận. Sau khi lưu, đăng nhập lại bằng mật khẩu mới. Các phiên cũ sẽ bị từ chối ở lần gọi API tiếp theo.
+Choose **Đổi mật khẩu** (Change password) at the top of the vocabulary page. Enter your current password, your new password, and the confirmation. After saving, sign in with the new password. Existing sessions are rejected the next time they call a protected endpoint.
 
-Nếu chưa đăng nhập, chọn **Quên mật khẩu?** trên trang đăng nhập. Backend gửi link tới email đã đăng ký khi Gmail SMTP đã được cấu hình. [Cấu hình Gmail và migration](../../backend/README.md#quên-mật-khẩu-qua-gmail).
+If you cannot sign in, choose **Quên mật khẩu?** (Forgot password?) on the sign-in page. The backend sends a link to the account email when Gmail SMTP is configured. [Gmail setup and migrations](https://github.com/trthinh2003/jlpt-trainer-api/blob/main/README.md#password-reset-with-gmail).
 
-## Cấu hình API
+## API configuration
 
-`VITE_API_BASE_URL` mặc định là `/api`. Với bản triển khai, cấu hình reverse proxy cho `/api` hoặc đặt biến này thành URL API phù hợp trước khi build. File `.env.example` là mẫu cấu hình; không đặt token hoặc secret vào biến Vite.
+`VITE_API_BASE_URL` defaults to `/api`. For deployment, configure a reverse proxy for `/api` or set the variable to the API URL before building. See `.env.example` for the configuration format. Keep tokens and secrets out of Vite environment variables.
 
-Phiên đăng nhập giữ khóa localStorage `jlpt_token` và `jlpt_user` từ frontend cũ. Khi API trả 401 ở một request cần xác thực, ứng dụng xóa phiên và chuyển về trang đăng nhập.
+The app keeps the existing `jlpt_token` and `jlpt_user` keys in localStorage. If a protected request returns `401`, the app clears the session and opens the sign-in page.

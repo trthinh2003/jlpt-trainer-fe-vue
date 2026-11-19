@@ -16,7 +16,10 @@ before(async () => {
     },
   })
 
-  vite = await createServer({ server: { middlewareMode: true, ws: false, watch: null } })
+  vite = await createServer({
+    server: { middlewareMode: true, ws: false, watch: null },
+    optimizeDeps: { noDiscovery: true, include: [] },
+  })
   http = await vite.ssrLoadModule('/src/shared/api/http.ts')
   session = await vite.ssrLoadModule('/src/features/auth/store/session.ts')
 })

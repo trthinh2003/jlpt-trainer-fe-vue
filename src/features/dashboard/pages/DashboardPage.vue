@@ -98,6 +98,7 @@ void loadDashboard()
         <nav class="dashboard-nav" aria-label="Điều hướng học tập">
           <RouterLink class="text-button" :to="{ name: 'vocabs' }">Kho từ vựng</RouterLink>
           <RouterLink class="text-button" :to="{ name: 'review' }">Ôn tập</RouterLink>
+          <RouterLink class="text-button" :to="{ name: 'mock-tests' }">Bài luyện</RouterLink>
         </nav>
       </header>
 
@@ -175,6 +176,7 @@ void loadDashboard()
 
 <style scoped>
 .dashboard-nav, .legend, .legend li, .metric-label { display: flex; align-items: center; gap: 12px; }
+.dashboard-nav { flex-wrap: wrap; }
 .dashboard-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .activity { grid-column: 1 / -1; }
 .heatmap {

@@ -42,6 +42,7 @@ src/
     vocab/           Vocabulary API, types, and catalog page
     review/          Review-card API and due-card page
     dashboard/       Study progress, review activity, and quiz scores
+    mock-test/       Timed vocabulary quizzes, history, and answer review
   shared/
     api/             HTTP client and error handling
     types/           Shared types and backend enums
@@ -63,6 +64,8 @@ Choose **Đổi mật khẩu** (Change password) at the top of the vocabulary pa
 If you cannot sign in, choose **Quên mật khẩu?** (Forgot password?) on the sign-in page. The backend sends a link to the account email when Gmail SMTP is configured. [Gmail setup and migrations](https://github.com/trthinh2003/jlpt-trainer-api/blob/main/README.md#password-reset-with-gmail).
 
 ## API configuration
+
+Open **Bài luyện** (Quiz) to choose a JLPT level, take a 15-minute vocabulary quiz, review missed or skipped questions, and download the result PDF. Apply the backend migrations to enable quizzes and the **Thêm vào bộ ôn** (Add to review) action for newly issued quizzes.
 
 Open **Tiến độ** (Progress) from the vocabulary or review page to see 84 days of UTC review activity, card mastery by type, and recent quiz scores. Run the backend's `AddReviewEvents` migration and use HTTPS for a deployed frontend so review submissions can use the browser's UUID generator.
 

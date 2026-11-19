@@ -25,7 +25,11 @@ export function setUnauthorizedHandler(handler: () => void): void {
   unauthorizedHandler = handler
 }
 
-export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+export async function request<T>(
+  path: string,
+  options: RequestOptions = {},
+  readBody: (response: Response) => Promise<T> = (response) => response.json(),
+): Promise<T> {
   const { signal, timeoutMs = defaultTimeoutMs, ...requestOptions } = options
   if (!Number.isFinite(timeoutMs) || timeoutMs <= 0 || timeoutMs > 2_147_483_647) {
     throw new RangeError('timeoutMs nằm ngoài khoảng hỗ trợ.')
@@ -64,7 +68,7 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
     }
 
     if (response.status === 204) return undefined as T
-    const data = await response.json() as T
+    const data = await readBody(response)
     controller.signal.throwIfAborted()
     return data
   } catch (error) {

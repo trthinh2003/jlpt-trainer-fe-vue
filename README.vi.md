@@ -42,6 +42,7 @@ src/
     vocab/           API, kiểu dữ liệu, trang quản lý từ vựng
     review/          API thẻ ôn và trang ôn các thẻ đến hạn
     dashboard/       Tiến độ, lịch ôn và điểm bài luyện
+    mock-test/       Bài luyện có giờ, lịch sử và xem lại đáp án
   shared/
     api/             HTTP client và xử lý lỗi chung
     types/           Kiểu dữ liệu dùng chung, enum backend
@@ -63,6 +64,8 @@ Chọn **Đổi mật khẩu** ở đầu trang kho từ vựng. Nhập mật kh
 Nếu chưa đăng nhập, chọn **Quên mật khẩu?** trên trang đăng nhập. Backend gửi link tới email đã đăng ký khi Gmail SMTP đã được cấu hình. [Cấu hình Gmail và migration](https://github.com/trthinh2003/jlpt-trainer-api/blob/main/README.vi.md#quên-mật-khẩu-qua-gmail).
 
 ## Cấu hình API
+
+Mở **Bài luyện** để chọn cấp JLPT, làm bài từ vựng trong 15 phút, xem lại câu sai hoặc bỏ trống và tải PDF kết quả. Cập nhật migration backend để dùng bài luyện và nút **Thêm vào bộ ôn** trên các đề được cấp mới.
 
 Mở **Tiến độ** từ trang từ vựng hoặc ôn tập để xem lịch ôn trong 84 ngày UTC, mức độ ghi nhớ theo loại thẻ và điểm bài luyện gần đây. Áp dụng migration `AddReviewEvents` ở backend và dùng HTTPS khi triển khai frontend để trình duyệt có thể tạo UUID cho lượt ôn.
 

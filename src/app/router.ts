@@ -51,6 +51,26 @@ export const router = createRouter({
       component: () => import('@/features/dashboard/pages/DashboardPage.vue'),
       meta: { requiresAuth: true },
     },
+    {
+      path: '/mock-tests',
+      name: 'mock-tests',
+      component: () => import('@/features/mock-test/pages/MockTestsPage.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/mock-tests/attempts/:id',
+      name: 'mock-test-attempt',
+      component: () => import('@/features/mock-test/pages/MockTestAttemptPage.vue'),
+      meta: { requiresAuth: true },
+      props: true,
+    },
+    {
+      path: '/mock-tests/results/:id',
+      name: 'mock-test-result',
+      component: () => import('@/features/mock-test/pages/MockTestResultPage.vue'),
+      meta: { requiresAuth: true },
+      props: true,
+    },
     { path: '/:pathMatch(.*)*', redirect: '/' },
   ],
 })

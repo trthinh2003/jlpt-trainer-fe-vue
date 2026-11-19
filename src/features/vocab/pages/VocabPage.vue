@@ -181,6 +181,7 @@ async function logout(): Promise<void> {
           {{ showCreateForm ? 'Đóng' : '+ Thêm từ' }}
         </button>
       </div>
+      <p><RouterLink class="text-button" :to="{ name: 'mock-tests' }">Bài luyện từ vựng</RouterLink></p>
 
       <form v-if="showCreateForm && canManageCatalog" class="create-panel" @submit.prevent="createVocab">
         <h2>Thêm từ vựng</h2>

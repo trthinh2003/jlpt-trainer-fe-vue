@@ -13,8 +13,8 @@ export interface ReviewContent {
 const path = '/reviewcards'
 
 export const reviewApi = {
-  add(cardType: CardType, referenceId: string): Promise<string> {
-    return request(path, { method: 'POST', body: JSON.stringify({ cardType, referenceId }) })
+  add(cardType: CardType, referenceId: string, signal?: AbortSignal): Promise<string> {
+    return request(path, { method: 'POST', body: JSON.stringify({ cardType, referenceId }), signal })
   },
   getDue(): Promise<DueCard[]> {
     return request(`${path}/due`)

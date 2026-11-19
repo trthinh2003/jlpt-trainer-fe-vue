@@ -19,10 +19,10 @@ export const reviewApi = {
   getDue(): Promise<DueCard[]> {
     return request(`${path}/due`)
   },
-  submit(reviewCardId: string, grade: ReviewGrade): Promise<SubmitReviewResult> {
+  submit(reviewCardId: string, grade: ReviewGrade, requestId: string): Promise<SubmitReviewResult> {
     return request(`${path}/${encodeURIComponent(reviewCardId)}/review`, {
       method: 'POST',
-      body: JSON.stringify({ grade }),
+      body: JSON.stringify({ grade, requestId }),
     })
   },
   async getContent(card: DueCard, signal: AbortSignal): Promise<ReviewContent> {

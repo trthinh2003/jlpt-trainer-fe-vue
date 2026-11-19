@@ -163,6 +163,7 @@ async function logout(): Promise<void> {
       </div>
       <div class="account">
         <RouterLink class="text-button" :to="{ name: 'review' }">Ôn tập</RouterLink>
+        <RouterLink class="text-button" :to="{ name: 'dashboard' }">Tiến độ</RouterLink>
         <RouterLink class="text-button" :to="{ name: 'change-password' }">Đổi mật khẩu</RouterLink>
         <span>{{ currentUser?.displayName }}</span>
         <button class="text-button" type="button" @click="logout">Đăng xuất</button>

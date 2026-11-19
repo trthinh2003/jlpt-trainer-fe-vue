@@ -41,6 +41,7 @@ src/
     auth/            Auth API, session state, and account pages
     vocab/           Vocabulary API, types, and catalog page
     review/          Review-card API and due-card page
+    dashboard/       Study progress, review activity, and quiz scores
   shared/
     api/             HTTP client and error handling
     types/           Shared types and backend enums
@@ -62,6 +63,8 @@ Choose **Đổi mật khẩu** (Change password) at the top of the vocabulary pa
 If you cannot sign in, choose **Quên mật khẩu?** (Forgot password?) on the sign-in page. The backend sends a link to the account email when Gmail SMTP is configured. [Gmail setup and migrations](https://github.com/trthinh2003/jlpt-trainer-api/blob/main/README.md#password-reset-with-gmail).
 
 ## API configuration
+
+Open **Tiến độ** (Progress) from the vocabulary or review page to see 84 days of UTC review activity, card mastery by type, and recent quiz scores. Run the backend's `AddReviewEvents` migration and use HTTPS for a deployed frontend so review submissions can use the browser's UUID generator.
 
 `VITE_API_BASE_URL` defaults to `/api`. For deployment, configure a reverse proxy for `/api` or set the variable to the API URL before building. See `.env.example` for the configuration format. Keep tokens and secrets out of Vite environment variables.
 

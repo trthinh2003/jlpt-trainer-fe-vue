@@ -22,6 +22,7 @@ const submitError = ref('')
 const submitFeedback = ref('')
 const isRevealed = ref(false)
 const isSubmitting = ref(false)
+const pendingGrade = ref<{ grade: ReviewGrade; requestId: string } | null>(null)
 
 async function loadDueCards(): Promise<void> {
   if (queueLoading.value) return
@@ -40,6 +41,7 @@ watch([currentCard, contentAttempt], async ([card], _, onCleanup) => {
   content.value = null
   contentError.value = ''
   submitError.value = ''
+  pendingGrade.value = null
   isRevealed.value = false
   if (!card) return
 
@@ -59,19 +61,27 @@ watch([currentCard, contentAttempt], async ([card], _, onCleanup) => {
 async function submitGrade(grade: ReviewGrade): Promise<void> {
   const card = currentCard.value
   if (!card || !isRevealed.value || isSubmitting.value) return
+  if (pendingGrade.value && pendingGrade.value.grade !== grade) return
   isSubmitting.value = true
   submitError.value = ''
   submitFeedback.value = ''
   try {
-    const result = await reviewApi.submit(card.reviewCardId, grade)
+    pendingGrade.value ??= { grade, requestId: crypto.randomUUID() }
+    const result = await reviewApi.submit(card.reviewCardId, grade, pendingGrade.value.requestId)
     submitFeedback.value = `Đã lưu lượt ôn. Ôn lại lúc ${dateFormat.format(new Date(result.nextReviewDate))}.`
     cards.value.shift()
   } catch (error) {
+    if (error instanceof ApiError && error.status >= 400 && error.status < 500) {
+      pendingGrade.value = null
+    }
     if (error instanceof ApiError && error.status === 404) {
       submitFeedback.value = 'Thẻ này không còn trong bộ ôn.'
       cards.value.shift()
     } else {
-      submitError.value = getErrorMessage(error)
+      const message = getErrorMessage(error)
+      submitError.value = pendingGrade.value
+        ? `${message} Bấm lại cùng mức chấm để gửi lại lượt ôn.`
+        : message
     }
   } finally {
     isSubmitting.value = false
@@ -89,7 +99,10 @@ void loadDueCards()
           <h1>Ôn tập</h1>
           <p v-if="cards.length" class="muted">Còn {{ cards.length }} thẻ trong lượt này</p>
         </div>
-        <RouterLink class="text-button" :to="{ name: 'vocabs' }">Về kho từ vựng</RouterLink>
+        <nav class="review-actions" aria-label="Điều hướng học tập">
+          <RouterLink class="text-button" :to="{ name: 'vocabs' }">Kho từ vựng</RouterLink>
+          <RouterLink class="text-button" :to="{ name: 'dashboard' }">Tiến độ</RouterLink>
+        </nav>
       </div>
 
       <p v-if="submitFeedback" class="muted" role="status">{{ submitFeedback }}</p>
@@ -126,7 +139,8 @@ void loadDueCards()
           <div class="review-actions" role="group" aria-label="Mức độ ghi nhớ">
             <button
               v-for="grade in grades" :key="grade.value" class="primary-button" type="button"
-              :disabled="isSubmitting" @click="submitGrade(grade.value)"
+              :disabled="isSubmitting || (pendingGrade !== null && pendingGrade.grade !== grade.value)"
+              @click="submitGrade(grade.value)"
             >{{ grade.label }}</button>
           </div>
         </template>

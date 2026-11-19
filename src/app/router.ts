@@ -45,6 +45,12 @@ export const router = createRouter({
       component: () => import('@/features/auth/pages/ChangePasswordPage.vue'),
       meta: { requiresAuth: true },
     },
+    {
+      path: '/dashboard',
+      name: 'dashboard',
+      component: () => import('@/features/dashboard/pages/DashboardPage.vue'),
+      meta: { requiresAuth: true },
+    },
     { path: '/:pathMatch(.*)*', redirect: '/' },
   ],
 })

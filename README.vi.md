@@ -40,6 +40,7 @@ src/
   features/
     auth/            API, phiên đăng nhập, trang đăng nhập/đăng ký
     vocab/           API, kiểu dữ liệu, trang quản lý từ vựng
+    catalog/         Duyệt Kanji, Ngữ pháp và import Excel dùng chung
     review/          API thẻ ôn và trang ôn các thẻ đến hạn
     dashboard/       Tiến độ, lịch ôn và điểm bài luyện
     mock-test/       Bài luyện có giờ, lịch sử và xem lại đáp án
@@ -56,6 +57,10 @@ Các feature khác có thể bổ sung theo cùng mẫu `features/<tên>/api`, `
 Đăng nhập, chọn **Thêm vào bộ ôn** ở một từ vựng rồi mở **Ôn tập**. Chọn **Hiện đáp án** và chấm mức nhớ để server cập nhật lịch ôn. Trang tải theo lượt tối đa 20 thẻ và hiển thị các thẻ từ vựng, kanji hoặc ngữ pháp đã có trong bộ ôn.
 
 Trang từ vựng lấy quyền quản lý kho qua `GET /api/auth/me`. Nút **Thêm từ** và **Xóa** dành cho tài khoản quản lý kho. [Cấp quyền quản lý kho](https://github.com/trthinh2003/jlpt-trainer-api/blob/main/README.vi.md#quản-lý-kho-học-liệu).
+
+## Nhập học liệu từ Excel
+
+Tài khoản quản lý kho mở **Nhập Excel** tại trang **Từ vựng**, **Kanji** hoặc **Ngữ pháp**. Tải mẫu của nhóm đã chọn, điền trang tính đầu và tải file `.xlsx` tối đa 5 MB lên. Kết quả hiển thị số dòng đã nhập, dòng trùng và lỗi theo số dòng Excel. Người học có thể duyệt và thêm mục vào bộ ôn cá nhân.
 
 ## Đổi mật khẩu
 

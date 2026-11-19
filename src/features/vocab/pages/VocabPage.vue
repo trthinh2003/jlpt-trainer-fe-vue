@@ -1,10 +1,14 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref, watch } from 'vue'
+import { onUnmounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { authApi } from '@/features/auth/api/auth.api'
 import { clearSession, useSession } from '@/features/auth/store/session'
+import CatalogImportPanel from '@/features/catalog/components/CatalogImportPanel.vue'
+import CatalogNavigation from '@/features/catalog/components/CatalogNavigation.vue'
+import { useCatalogPermission } from '@/features/catalog/composables/useCatalogPermission'
+import type { CatalogImportResult } from '@/features/catalog/types'
 import { reviewApi } from '@/features/review/api/review.api'
 import { ApiError, getErrorMessage } from '@/shared/api/http'
+import AppLoading from '@/shared/components/AppLoading.vue'
 import { CardType, JlptLevel, type PagedResult } from '@/shared/types/api'
 import { vocabApi } from '../api/vocab.api'
 import type { Vocab } from '../types'
@@ -18,14 +22,14 @@ const result = ref<PagedResult<Vocab> | null>(null)
 const isLoading = ref(false)
 const listError = ref('')
 const actionError = ref('')
-const canManageCatalog = ref(false)
-const permissionError = ref(false)
+const { canManageCatalog, permissionError, loadCatalogPermission, refreshAfterForbidden } = useCatalogPermission()
 const isSaving = ref(false)
 const deletingId = ref<string | null>(null)
 const addingToReview = ref(new Set<string>())
 const inReview = ref(new Set<string>())
 const reviewError = ref('')
 const showCreateForm = ref(false)
+const showImport = ref(false)
 const form = reactive({
   word: '',
   reading: '',
@@ -34,10 +38,12 @@ const form = reactive({
   exampleSentenceMeaning: '',
   level: JlptLevel.N5,
 })
-let requestId = 0
+let listRequest: AbortController | undefined
 
 async function loadVocabs(): Promise<void> {
-  const currentRequest = ++requestId
+  listRequest?.abort()
+  const request = new AbortController()
+  listRequest = request
   isLoading.value = true
   listError.value = ''
   try {
@@ -45,45 +51,38 @@ async function loadVocabs(): Promise<void> {
       level: level.value === '' ? null : level.value,
       pageNumber: page.value,
       pageSize: 20,
-    })
-    if (currentRequest === requestId) {
+    }, request.signal)
+    if (!request.signal.aborted) {
       const lastPage = Math.max(1, data.totalPages)
       if (page.value > lastPage) page.value = lastPage
       else result.value = data
     }
   } catch (error) {
-    if (currentRequest === requestId) listError.value = getErrorMessage(error)
+    if (!request.signal.aborted) listError.value = getErrorMessage(error)
   } finally {
-    if (currentRequest === requestId) isLoading.value = false
+    if (listRequest === request) isLoading.value = false
   }
 }
 
 watch(level, () => { page.value = 1 })
 watch([level, page], () => { void loadVocabs() }, { immediate: true })
 
-async function loadCatalogPermission(): Promise<void> {
-  permissionError.value = false
-  try {
-    const account = await authApi.getCurrentAccount()
-    canManageCatalog.value = account.canManageCatalog
-  } catch {
-    canManageCatalog.value = false
-    permissionError.value = true
-  }
+onUnmounted(() => listRequest?.abort())
+
+function handleForbidden(): void {
+  showCreateForm.value = false
+  showImport.value = false
+  actionError.value = 'Bạn không có quyền thay đổi kho học liệu.'
+  refreshAfterForbidden()
 }
 
-onMounted(loadCatalogPermission)
+function handleCatalogWriteError(error: unknown): void {
+  if (error instanceof ApiError && error.status === 403) handleForbidden()
+  else actionError.value = getErrorMessage(error)
+}
 
-async function handleCatalogWriteError(error: unknown): Promise<void> {
-  if (error instanceof ApiError && error.status === 403) {
-    canManageCatalog.value = false
-    showCreateForm.value = false
-    actionError.value = 'Bạn không có quyền thay đổi kho học liệu.'
-    await loadCatalogPermission()
-    return
-  }
-
-  actionError.value = getErrorMessage(error)
+function refreshAfterImport(summary: CatalogImportResult): void {
+  if (summary.successCount > 0) void loadVocabs()
 }
 
 async function createVocab(): Promise<void> {
@@ -111,7 +110,7 @@ async function createVocab(): Promise<void> {
     if (page.value !== 1) page.value = 1
     else await loadVocabs()
   } catch (error) {
-    await handleCatalogWriteError(error)
+    handleCatalogWriteError(error)
   } finally {
     isSaving.value = false
   }
@@ -127,7 +126,7 @@ async function deleteVocab(vocab: Vocab): Promise<void> {
     inReview.value.delete(vocab.id)
     await loadVocabs()
   } catch (error) {
-    await handleCatalogWriteError(error)
+    handleCatalogWriteError(error)
   } finally {
     deletingId.value = null
   }
@@ -177,11 +176,19 @@ async function logout(): Promise<void> {
           <h1>Kho từ vựng</h1>
           <p class="muted">Học và quản lý từ vựng theo cấp độ JLPT.</p>
         </div>
-        <button v-if="canManageCatalog" class="primary-button create-toggle" type="button" @click="showCreateForm = !showCreateForm">
-          {{ showCreateForm ? 'Đóng' : '+ Thêm từ' }}
-        </button>
+        <div v-if="canManageCatalog" class="catalog-actions">
+          <button class="text-button" type="button" :aria-expanded="showImport" @click="showImport = !showImport">
+            {{ showImport ? 'Đóng nhập Excel' : 'Nhập Excel' }}
+          </button>
+          <button class="primary-button create-toggle" type="button" :aria-expanded="showCreateForm" @click="showCreateForm = !showCreateForm">
+            {{ showCreateForm ? 'Đóng form' : '+ Thêm từ' }}
+          </button>
+        </div>
       </div>
+      <CatalogNavigation />
       <p><RouterLink class="text-button" :to="{ name: 'mock-tests' }">Bài luyện từ vựng</RouterLink></p>
+      <CatalogImportPanel v-if="canManageCatalog" v-show="showImport" kind="vocab"
+        @imported="refreshAfterImport" @forbidden="handleForbidden" />
 
       <form v-if="showCreateForm && canManageCatalog" class="create-panel" @submit.prevent="createVocab">
         <h2>Thêm từ vựng</h2>
@@ -217,9 +224,10 @@ async function logout(): Promise<void> {
       </p>
       <p v-if="reviewError" class="error" role="alert">{{ reviewError }}</p>
       <p v-if="listError" class="error" role="alert">{{ listError }} <button class="text-button" @click="loadVocabs">Thử lại</button></p>
-      <p v-else-if="isLoading" class="muted status">Đang tải từ vựng...</p>
-      <p v-else-if="result?.items.length === 0" class="muted status">Chưa có từ vựng ở cấp độ này.</p>
-      <div v-else-if="result" class="vocab-list">
+      <AppLoading v-else-if="isLoading && !result" label="Đang tải từ vựng…" />
+      <AppLoading v-if="isLoading && result" compact label="Đang cập nhật danh sách…" />
+      <p v-if="!isLoading && result?.items.length === 0" class="muted status">Chưa có từ vựng ở cấp độ này.</p>
+      <div v-if="result" class="vocab-list" :aria-busy="isLoading">
         <article v-for="vocab in result.items" :key="vocab.id" class="vocab-card">
           <div class="vocab-main">
             <div>
@@ -246,7 +254,7 @@ async function logout(): Promise<void> {
 
       <nav v-if="result && result.totalPages > 1" class="pagination" aria-label="Phân trang">
         <button type="button" :disabled="page <= 1 || isLoading" @click="page -= 1">Trước</button>
-        <span>Trang {{ page }} / {{ result.totalPages }}</span>
+        <span>Trang {{ result.pageNumber }} / {{ result.totalPages }}</span>
         <button type="button" :disabled="page >= result.totalPages || isLoading" @click="page += 1">Sau</button>
       </nav>
     </div>
@@ -255,6 +263,7 @@ async function logout(): Promise<void> {
 
 <style scoped>
 .vocab-actions { display: flex; flex-wrap: wrap; gap: 4px 12px; justify-content: flex-end; }
+.catalog-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
 @media (max-width: 620px) {
   .vocab-main { flex-direction: column; }
   .vocab-actions { justify-content: flex-start; }

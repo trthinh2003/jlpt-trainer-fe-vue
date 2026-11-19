@@ -3,6 +3,8 @@ import { computed, onUnmounted, ref, watch } from 'vue'
 import { ApiError, getErrorMessage } from '@/shared/api/http'
 import { CardType, JlptLevel } from '@/shared/types/api'
 import { reviewApi } from '@/features/review/api/review.api'
+import AppLoading from '@/shared/components/AppLoading.vue'
+import { downloadBlob } from '@/shared/download'
 import { mockTestApi } from '../api/mock-test.api'
 import type { MockTestReview } from '../types'
 
@@ -73,12 +75,7 @@ async function downloadPdf(): Promise<void> {
   try {
     const pdf = await mockTestApi.getPdf(id, request.signal)
     if (request.signal.aborted) return
-    const url = URL.createObjectURL(pdf)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `mocktest_result_${id}.pdf`
-    link.click()
-    window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+    downloadBlob(pdf, `mocktest_result_${id}.pdf`)
   } catch (error) {
     if (!request.signal.aborted) downloadError.value = getErrorMessage(error)
   } finally {
@@ -99,7 +96,7 @@ onUnmounted(() => {
       <h1>Kết quả bài luyện</h1>
       <RouterLink class="text-button" :to="{ name: 'mock-tests' }">Về danh sách bài luyện</RouterLink>
     </header>
-    <p v-if="loading" class="muted status" role="status">Đang tải kết quả…</p>
+    <AppLoading v-if="loading" label="Đang tải kết quả…" />
     <section v-else-if="loadError" class="vocab-card">
       <p class="error" role="alert">{{ loadError }}</p>
       <button class="text-button" type="button" @click="load(id)">Thử lại</button>

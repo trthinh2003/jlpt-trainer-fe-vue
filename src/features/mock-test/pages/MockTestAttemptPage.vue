@@ -2,6 +2,7 @@
 import { computed, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ApiError, getErrorMessage } from '@/shared/api/http'
+import AppLoading from '@/shared/components/AppLoading.vue'
 import { JlptLevel } from '@/shared/types/api'
 import { mockTestApi } from '../api/mock-test.api'
 import type { MockTestAttempt } from '../types'
@@ -140,7 +141,7 @@ onUnmounted(() => {
       <h1>Bài luyện {{ attempt ? JlptLevel[attempt.level] : 'từ vựng' }}</h1>
       <RouterLink class="text-button" :to="{ name: 'mock-tests' }">Về danh sách bài luyện</RouterLink>
     </header>
-    <p v-if="loading" class="muted status" role="status">Đang tải đề…</p>
+    <AppLoading v-if="loading" label="Đang tải đề…" />
     <section v-else-if="loadError" class="vocab-card">
       <p class="error" role="alert">{{ loadError }}</p>
       <button class="text-button" type="button" @click="load(id)">Tải lại đề</button>

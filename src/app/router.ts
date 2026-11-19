@@ -34,6 +34,20 @@ export const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/kanjis',
+      name: 'kanjis',
+      component: () => import('@/features/catalog/pages/CatalogBrowsePage.vue'),
+      props: { kind: 'kanji' },
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/grammar',
+      name: 'grammar',
+      component: () => import('@/features/catalog/pages/CatalogBrowsePage.vue'),
+      props: { kind: 'grammar' },
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/review',
       name: 'review',
       component: () => import('@/features/review/pages/ReviewPage.vue'),

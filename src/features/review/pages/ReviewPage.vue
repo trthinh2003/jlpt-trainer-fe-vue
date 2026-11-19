@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { ApiError, getErrorMessage } from '@/shared/api/http'
+import AppLoading from '@/shared/components/AppLoading.vue'
 import { ReviewGrade, type DueCard } from '@/shared/types/api'
 import { reviewApi, type ReviewContent } from '../api/review.api'
 
@@ -106,7 +107,7 @@ void loadDueCards()
       </div>
 
       <p v-if="submitFeedback" class="muted" role="status">{{ submitFeedback }}</p>
-      <p v-if="queueLoading" class="muted status" role="status">Đang tải thẻ đến hạn...</p>
+      <AppLoading v-if="queueLoading" label="Đang tải thẻ đến hạn…" />
       <section v-else-if="queueError" class="vocab-card">
         <p class="error" role="alert">{{ queueError }}</p>
         <button class="text-button" type="button" @click="loadDueCards">Tải lại danh sách</button>
@@ -122,7 +123,7 @@ void loadDueCards()
           <button class="text-button" type="button" @click="cards.shift()">Bỏ qua trong lượt này</button>
         </div>
       </section>
-      <p v-else-if="!content" class="muted status" role="status">Đang tải nội dung thẻ...</p>
+      <AppLoading v-else-if="!content" label="Đang tải nội dung thẻ…" />
       <article v-else class="vocab-card review-card">
         <h2 lang="ja">{{ content.prompt }}</h2>
         <button v-if="!isRevealed" class="primary-button" type="button" @click="isRevealed = true">

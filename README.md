@@ -40,6 +40,7 @@ src/
   features/
     auth/            Auth API, session state, and account pages
     vocab/           Vocabulary API, types, and catalog page
+    catalog/         Kanji and grammar browsing, shared Excel import
     review/          Review-card API and due-card page
     dashboard/       Study progress, review activity, and quiz scores
     mock-test/       Timed vocabulary quizzes, history, and answer review
@@ -56,6 +57,10 @@ New features can follow the same layout under `features/<name>`, with `api/`, `p
 Sign in, choose **Thêm vào bộ ôn** (Add to review) on a vocabulary item, then open **Ôn tập** (Review). Choose **Hiện đáp án** (Show answer) and rate how well you remembered the card. The server calculates the next review time. Each batch shows up to 20 due vocabulary, kanji, or grammar cards from your review queue.
 
 The vocabulary page fetches catalog permissions from `GET /api/auth/me`. **Thêm từ** (Add vocabulary) and **Xóa** (Delete) are available to catalog managers. [Manage account permissions](https://github.com/trthinh2003/jlpt-trainer-api/blob/main/README.md#catalog-management).
+
+## Import study materials from Excel
+
+Catalog managers can open **Nhập Excel** (Import Excel) on the vocabulary, kanji, or grammar page. Download that catalog's template, fill its first worksheet, and upload an `.xlsx` file up to 5 MB. Results show imported and duplicate row counts and report errors by Excel row number. Learners can browse all three catalogs and add items to their personal review queue.
 
 ## Change or reset a password
 

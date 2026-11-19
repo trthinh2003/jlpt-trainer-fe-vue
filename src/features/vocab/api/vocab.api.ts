@@ -5,13 +5,13 @@ import type { CreateVocabRequest, GetVocabListParams, Vocab } from '../types'
 const path = '/vocabs'
 
 export const vocabApi = {
-  getList(params: GetVocabListParams = {}): Promise<PagedResult<Vocab>> {
+  getList(params: GetVocabListParams = {}, signal?: AbortSignal): Promise<PagedResult<Vocab>> {
     const query = new URLSearchParams({
       pageNumber: String(params.pageNumber ?? 1),
       pageSize: String(params.pageSize ?? 20),
     })
     if (params.level != null) query.set('level', String(params.level))
-    return request(`${path}?${query}`)
+    return request(`${path}?${query}`, { signal })
   },
   getById(id: string, signal?: AbortSignal): Promise<Vocab> {
     return request(`${path}/${encodeURIComponent(id)}`, { signal })

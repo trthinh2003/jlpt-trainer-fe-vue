@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onUnmounted, ref } from 'vue'
 import { getErrorMessage } from '@/shared/api/http'
+import AppLoading from '@/shared/components/AppLoading.vue'
 import { CardType, JlptLevel } from '@/shared/types/api'
 import { dashboardApi } from '../api/dashboard.api'
 import type { HeatmapEntry, ProgressStats } from '../types'
@@ -102,7 +103,7 @@ void loadDashboard()
         </nav>
       </header>
 
-      <p v-if="loading" class="muted status" role="status">Đang tải tiến độ...</p>
+      <AppLoading v-if="loading" label="Đang tải tiến độ…" />
       <section v-else-if="errorMessage" class="vocab-card">
         <p class="error" role="alert">{{ errorMessage }}</p>
         <button class="text-button" type="button" @click="loadDashboard">Thử lại</button>

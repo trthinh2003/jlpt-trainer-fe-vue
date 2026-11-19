@@ -2,6 +2,7 @@
 import { onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { getErrorMessage } from '@/shared/api/http'
+import AppLoading from '@/shared/components/AppLoading.vue'
 import { JlptLevel, type PagedResult } from '@/shared/types/api'
 import { mockTestApi } from '../api/mock-test.api'
 import type { MockTestSummary } from '../types'
@@ -85,7 +86,7 @@ void loadHistory()
 
     <section class="vocab-card history">
       <h2>Lịch sử làm bài</h2>
-      <p v-if="loading" class="muted" role="status">Đang tải lịch sử…</p>
+      <AppLoading v-if="loading" compact label="Đang tải lịch sử…" />
       <template v-else-if="historyError">
         <p class="error" role="alert">{{ historyError }}</p>
         <button class="text-button" type="button" @click="loadHistory(history?.pageNumber)">Thử lại</button>

@@ -28,6 +28,7 @@ Vue 3（Composition API）、TypeScript、Vite で構築した JLPT Trainer の�
 
 - `npm run dev` は開発サーバーを起動します。
 - `npm run typecheck` は TypeScript と Vue の単一ファイルコンポーネントを型チェックします。
+- `npm test` は HTTP クライアントの回帰テストを実行します。
 - `npm run build` は型チェックを実行し、本番用の成果物を `dist/` に出力します。
 - `npm run preview` はビルド結果をローカルでプレビューします。
 
@@ -51,6 +52,8 @@ src/
 ## カードの復習
 
 ログイン後、語彙一覧で **Thêm vào bộ ôn**（復習に追加）を選び、**Ôn tập**（復習）を開きます。**Hiện đáp án**（答えを表示）を選んで覚え具合を評価すると、サーバーが次の復習時刻を計算します。1 回の読み込みで、復習時期を迎えた語彙・漢字・文法のカードを最大 20 枚表示します。
+
+語彙一覧は `GET /api/auth/me` で教材管理権限を取得します。**Thêm từ**（語彙を追加）と **Xóa**（削除）は教材管理者に表示されます。[教材管理権限の設定](https://github.com/trthinh2003/jlpt-trainer-api/blob/main/README.ja.md#教材の管理)
 
 ## パスワードの変更・再設定
 

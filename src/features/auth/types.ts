@@ -18,3 +18,7 @@ export interface AuthResult {
   displayName: string
   token: string
 }
+
+export interface AccountCapabilities {
+  canManageCatalog: boolean
+}

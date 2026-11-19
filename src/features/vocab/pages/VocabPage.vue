@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { reactive, ref, watch } from 'vue'
+import { onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { authApi } from '@/features/auth/api/auth.api'
 import { clearSession, useSession } from '@/features/auth/store/session'
 import { reviewApi } from '@/features/review/api/review.api'
 import { ApiError, getErrorMessage } from '@/shared/api/http'
@@ -17,6 +18,8 @@ const result = ref<PagedResult<Vocab> | null>(null)
 const isLoading = ref(false)
 const listError = ref('')
 const actionError = ref('')
+const canManageCatalog = ref(false)
+const permissionError = ref(false)
 const isSaving = ref(false)
 const deletingId = ref<string | null>(null)
 const addingToReview = ref(new Set<string>())
@@ -58,7 +61,33 @@ async function loadVocabs(): Promise<void> {
 watch(level, () => { page.value = 1 })
 watch([level, page], () => { void loadVocabs() }, { immediate: true })
 
+async function loadCatalogPermission(): Promise<void> {
+  permissionError.value = false
+  try {
+    const account = await authApi.getCurrentAccount()
+    canManageCatalog.value = account.canManageCatalog
+  } catch {
+    canManageCatalog.value = false
+    permissionError.value = true
+  }
+}
+
+onMounted(loadCatalogPermission)
+
+async function handleCatalogWriteError(error: unknown): Promise<void> {
+  if (error instanceof ApiError && error.status === 403) {
+    canManageCatalog.value = false
+    showCreateForm.value = false
+    actionError.value = 'Bạn không có quyền thay đổi kho học liệu.'
+    await loadCatalogPermission()
+    return
+  }
+
+  actionError.value = getErrorMessage(error)
+}
+
 async function createVocab(): Promise<void> {
+  if (!canManageCatalog.value || isSaving.value) return
   if (!form.word.trim() || !form.reading.trim() || !form.meaning.trim()) {
     actionError.value = 'Vui lòng nhập từ, cách đọc và nghĩa.'
     return
@@ -82,14 +111,14 @@ async function createVocab(): Promise<void> {
     if (page.value !== 1) page.value = 1
     else await loadVocabs()
   } catch (error) {
-    actionError.value = getErrorMessage(error)
+    await handleCatalogWriteError(error)
   } finally {
     isSaving.value = false
   }
 }
 
 async function deleteVocab(vocab: Vocab): Promise<void> {
-  if (deletingId.value || addingToReview.value.has(vocab.id)) return
+  if (!canManageCatalog.value || deletingId.value || addingToReview.value.has(vocab.id)) return
   if (!window.confirm(`Xóa từ "${vocab.word}" khỏi kho chung và bộ ôn liên quan?`)) return
   deletingId.value = vocab.id
   actionError.value = ''
@@ -98,7 +127,7 @@ async function deleteVocab(vocab: Vocab): Promise<void> {
     inReview.value.delete(vocab.id)
     await loadVocabs()
   } catch (error) {
-    actionError.value = getErrorMessage(error)
+    await handleCatalogWriteError(error)
   } finally {
     deletingId.value = null
   }
@@ -147,12 +176,12 @@ async function logout(): Promise<void> {
           <h1>Kho từ vựng</h1>
           <p class="muted">Học và quản lý từ vựng theo cấp độ JLPT.</p>
         </div>
-        <button class="primary-button create-toggle" type="button" @click="showCreateForm = !showCreateForm">
+        <button v-if="canManageCatalog" class="primary-button create-toggle" type="button" @click="showCreateForm = !showCreateForm">
           {{ showCreateForm ? 'Đóng' : '+ Thêm từ' }}
         </button>
       </div>
 
-      <form v-if="showCreateForm" class="create-panel" @submit.prevent="createVocab">
+      <form v-if="showCreateForm && canManageCatalog" class="create-panel" @submit.prevent="createVocab">
         <h2>Thêm từ vựng</h2>
         <div class="form-grid">
           <div class="field"><label for="word">Từ *</label><input id="word" v-model="form.word" required /></div>
@@ -180,6 +209,10 @@ async function logout(): Promise<void> {
       </div>
 
       <p v-if="actionError && !showCreateForm" class="error" role="alert">{{ actionError }}</p>
+      <p v-if="permissionError" class="muted" role="status">
+        Chưa tải được quyền quản lý kho.
+        <button class="text-button" type="button" @click="loadCatalogPermission">Thử lại</button>
+      </p>
       <p v-if="reviewError" class="error" role="alert">{{ reviewError }}</p>
       <p v-if="listError" class="error" role="alert">{{ listError }} <button class="text-button" @click="loadVocabs">Thử lại</button></p>
       <p v-else-if="isLoading" class="muted status">Đang tải từ vựng...</p>
@@ -200,7 +233,8 @@ async function logout(): Promise<void> {
                 @click="addToReview(vocab)"
               >{{ inReview.has(vocab.id) ? 'Đã có trong bộ ôn' : addingToReview.has(vocab.id) ? 'Đang thêm...' : 'Thêm vào bộ ôn' }}</button>
               <button
-                class="text-button danger" type="button" :disabled="deletingId !== null || addingToReview.has(vocab.id)"
+                v-if="canManageCatalog" class="text-button danger" type="button"
+                :disabled="deletingId !== null || addingToReview.has(vocab.id)"
                 @click="deleteVocab(vocab)"
               >{{ deletingId === vocab.id ? 'Đang xóa...' : 'Xóa' }}</button>
             </div>

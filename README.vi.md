@@ -28,6 +28,7 @@ Mở `http://localhost:5173`. Vite proxy các request `/api` tới `https://loca
 
 - `npm run dev`: chạy development server.
 - `npm run typecheck`: kiểm tra TypeScript và Vue SFC.
+- `npm test` chạy test hồi quy cho HTTP client.
 - `npm run build`: kiểm tra kiểu và tạo `dist/`.
 - `npm run preview`: xem bản build local.
 
@@ -51,6 +52,8 @@ Các feature khác có thể bổ sung theo cùng mẫu `features/<tên>/api`, `
 ## Ôn từ vựng
 
 Đăng nhập, chọn **Thêm vào bộ ôn** ở một từ vựng rồi mở **Ôn tập**. Chọn **Hiện đáp án** và chấm mức nhớ để server cập nhật lịch ôn. Trang tải theo lượt tối đa 20 thẻ và hiển thị các thẻ từ vựng, kanji hoặc ngữ pháp đã có trong bộ ôn.
+
+Trang từ vựng lấy quyền quản lý kho qua `GET /api/auth/me`. Nút **Thêm từ** và **Xóa** dành cho tài khoản quản lý kho. [Cấp quyền quản lý kho](https://github.com/trthinh2003/jlpt-trainer-api/blob/main/README.vi.md#quản-lý-kho-học-liệu).
 
 ## Đổi mật khẩu
 

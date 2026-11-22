@@ -18,10 +18,12 @@ export interface CatalogImportResult {
 export interface CatalogBrowseItem {
   id: string
   title: string
-  meaning: string
   level: JlptLevel
+  content: CatalogContent
   reading?: string
   detail?: string
-  example?: string | null
-  exampleMeaning?: string | null
 }
+
+export type CatalogContent =
+  | { kind: 'kanji'; meaning: string; onYomi: string; kunYomi: string }
+  | { kind: 'grammar'; meaning: string; exampleSentence: string | null; exampleSentenceMeaning: string | null }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onUnmounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onUnmounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { clearSession, useSession } from '@/features/auth/store/session'
 import CatalogImportPanel from '@/features/catalog/components/CatalogImportPanel.vue'
@@ -17,6 +17,8 @@ const router = useRouter()
 const { currentUser } = useSession()
 const levels = [JlptLevel.N5, JlptLevel.N4, JlptLevel.N3, JlptLevel.N2, JlptLevel.N1]
 const level = ref<JlptLevel | ''>('')
+const searchInput = ref('')
+const search = ref('')
 const page = ref(1)
 const result = ref<PagedResult<Vocab> | null>(null)
 const isLoading = ref(false)
@@ -29,15 +31,19 @@ const addingToReview = ref(new Set<string>())
 const inReview = ref(new Set<string>())
 const reviewError = ref('')
 const showCreateForm = ref(false)
+const editingVocab = ref<Vocab | null>(null)
+const showEditor = computed(() => showCreateForm.value || editingVocab.value !== null)
+const meaningInput = ref<HTMLInputElement | null>(null)
 const showImport = ref(false)
-const form = reactive({
-  word: '',
-  reading: '',
+const emptyContent = {
   meaning: '',
   exampleSentence: '',
   exampleSentenceMeaning: '',
-  level: JlptLevel.N5,
-})
+}
+const emptyCreateForm = { word: '', reading: '', level: JlptLevel.N5, ...emptyContent }
+const createForm = reactive({ ...emptyCreateForm })
+const editForm = reactive({ ...emptyContent })
+const contentForm = computed(() => editingVocab.value ? editForm : createForm)
 let listRequest: AbortController | undefined
 
 async function loadVocabs(): Promise<void> {
@@ -49,6 +55,7 @@ async function loadVocabs(): Promise<void> {
   try {
     const data = await vocabApi.getList({
       level: level.value === '' ? null : level.value,
+      search: search.value,
       pageNumber: page.value,
       pageSize: 20,
     }, request.signal)
@@ -64,13 +71,17 @@ async function loadVocabs(): Promise<void> {
   }
 }
 
-watch(level, () => { page.value = 1 })
-watch([level, page], () => { void loadVocabs() }, { immediate: true })
+watch(searchInput, (value, _, onCleanup) => {
+  const timer = setTimeout(() => { search.value = value.trim() }, 250)
+  onCleanup(() => clearTimeout(timer))
+})
+watch([level, search], () => { page.value = 1 })
+watch([level, search, page], () => { void loadVocabs() }, { immediate: true })
 
 onUnmounted(() => listRequest?.abort())
 
 function handleForbidden(): void {
-  showCreateForm.value = false
+  closeEditor()
   showImport.value = false
   actionError.value = 'Bạn không có quyền thay đổi kho học liệu.'
   refreshAfterForbidden()
@@ -85,29 +96,64 @@ function refreshAfterImport(summary: CatalogImportResult): void {
   if (summary.successCount > 0) void loadVocabs()
 }
 
-async function createVocab(): Promise<void> {
+function closeEditor(): void {
+  showCreateForm.value = false
+  editingVocab.value = null
+  actionError.value = ''
+}
+
+function toggleCreateForm(): void {
+  if (showCreateForm.value) {
+    closeEditor()
+    return
+  }
+  closeEditor()
+  showCreateForm.value = true
+}
+
+async function openEditor(vocab: Vocab): Promise<void> {
+  closeEditor()
+  editingVocab.value = vocab
+  Object.assign(editForm, {
+    meaning: vocab.meaning,
+    exampleSentence: vocab.exampleSentence ?? '',
+    exampleSentenceMeaning: vocab.exampleSentenceMeaning ?? '',
+  })
+  await nextTick()
+  meaningInput.value?.focus()
+}
+
+function clearSearch(): void {
+  searchInput.value = ''
+  search.value = ''
+}
+
+async function saveVocab(): Promise<void> {
   if (!canManageCatalog.value || isSaving.value) return
-  if (!form.word.trim() || !form.reading.trim() || !form.meaning.trim()) {
-    actionError.value = 'Vui lòng nhập từ, cách đọc và nghĩa.'
+  const vocab = editingVocab.value
+  const draft = contentForm.value
+  const content = {
+    meaning: draft.meaning.trim(),
+    exampleSentence: draft.exampleSentence.trim() || null,
+    exampleSentenceMeaning: draft.exampleSentenceMeaning.trim() || null,
+  }
+  const word = createForm.word.trim()
+  const reading = createForm.reading.trim()
+  if (!content.meaning || (!vocab && (!word || !reading))) {
+    actionError.value = vocab ? 'Vui lòng nhập nghĩa.' : 'Vui lòng nhập từ, cách đọc và nghĩa.'
     return
   }
   isSaving.value = true
   actionError.value = ''
   try {
-    await vocabApi.create({
-      word: form.word.trim(),
-      reading: form.reading.trim(),
-      meaning: form.meaning.trim(),
-      exampleSentence: form.exampleSentence.trim() || null,
-      exampleSentenceMeaning: form.exampleSentenceMeaning.trim() || null,
-      level: form.level,
-    })
-    Object.assign(form, {
-      word: '', reading: '', meaning: '',
-      exampleSentence: '', exampleSentenceMeaning: '', level: JlptLevel.N5,
-    })
-    showCreateForm.value = false
-    if (page.value !== 1) page.value = 1
+    if (vocab) {
+      await vocabApi.updateContent(vocab.id, content)
+    } else {
+      await vocabApi.create({ word, reading, level: createForm.level, ...content })
+      Object.assign(createForm, emptyCreateForm)
+    }
+    closeEditor()
+    if (!vocab && page.value !== 1) page.value = 1
     else await loadVocabs()
   } catch (error) {
     handleCatalogWriteError(error)
@@ -117,7 +163,7 @@ async function createVocab(): Promise<void> {
 }
 
 async function deleteVocab(vocab: Vocab): Promise<void> {
-  if (!canManageCatalog.value || deletingId.value || addingToReview.value.has(vocab.id)) return
+  if (!canManageCatalog.value || deletingId.value || isSaving.value || addingToReview.value.has(vocab.id)) return
   if (!window.confirm(`Xóa từ "${vocab.word}" khỏi kho chung và bộ ôn liên quan?`)) return
   deletingId.value = vocab.id
   actionError.value = ''
@@ -180,7 +226,8 @@ async function logout(): Promise<void> {
           <button class="text-button" type="button" :aria-expanded="showImport" @click="showImport = !showImport">
             {{ showImport ? 'Đóng nhập Excel' : 'Nhập Excel' }}
           </button>
-          <button class="primary-button create-toggle" type="button" :aria-expanded="showCreateForm" @click="showCreateForm = !showCreateForm">
+          <button class="primary-button create-toggle" type="button" :aria-expanded="showCreateForm"
+            :disabled="isSaving || deletingId !== null" @click="toggleCreateForm">
             {{ showCreateForm ? 'Đóng form' : '+ Thêm từ' }}
           </button>
         </div>
@@ -190,24 +237,36 @@ async function logout(): Promise<void> {
       <CatalogImportPanel v-if="canManageCatalog" v-show="showImport" kind="vocab"
         @imported="refreshAfterImport" @forbidden="handleForbidden" />
 
-      <form v-if="showCreateForm && canManageCatalog" class="create-panel" @submit.prevent="createVocab">
-        <h2>Thêm từ vựng</h2>
+      <form v-if="showEditor && canManageCatalog" class="create-panel" @submit.prevent="saveVocab">
+        <h2>{{ editingVocab ? `Sửa ${editingVocab.word} (${editingVocab.reading})` : 'Thêm từ vựng' }}</h2>
         <div class="form-grid">
-          <div class="field"><label for="word">Từ *</label><input id="word" v-model="form.word" required /></div>
-          <div class="field"><label for="reading">Cách đọc *</label><input id="reading" v-model="form.reading" required /></div>
-          <div class="field"><label for="meaning">Nghĩa *</label><input id="meaning" v-model="form.meaning" required /></div>
-          <div class="field"><label for="create-level">Cấp độ</label>
-            <select id="create-level" v-model.number="form.level">
-              <option v-for="item in levels" :key="item" :value="item">N{{ item }}</option>
-            </select>
-          </div>
-          <div class="field"><label for="example">Ví dụ</label><input id="example" v-model="form.exampleSentence" /></div>
-          <div class="field"><label for="example-meaning">Nghĩa ví dụ</label><input id="example-meaning" v-model="form.exampleSentenceMeaning" /></div>
+          <template v-if="!editingVocab">
+            <div class="field"><label for="word">Từ *</label><input id="word" v-model="createForm.word" maxlength="100" required /></div>
+            <div class="field"><label for="reading">Cách đọc *</label><input id="reading" v-model="createForm.reading" maxlength="100" required /></div>
+            <div class="field"><label for="create-level">Cấp độ</label>
+              <select id="create-level" v-model.number="createForm.level">
+                <option v-for="item in levels" :key="item" :value="item">N{{ item }}</option>
+              </select>
+            </div>
+          </template>
+          <div class="field"><label for="meaning">Nghĩa *</label><input id="meaning" ref="meaningInput" v-model="contentForm.meaning" maxlength="500" required /></div>
+          <div class="field"><label for="example">Ví dụ</label><input id="example" v-model="contentForm.exampleSentence" /></div>
+          <div class="field"><label for="example-meaning">Nghĩa ví dụ</label><input id="example-meaning" v-model="contentForm.exampleSentenceMeaning" /></div>
         </div>
         <p v-if="actionError" class="error" role="alert">{{ actionError }}</p>
-        <button class="primary-button" type="submit" :disabled="isSaving">{{ isSaving ? 'Đang lưu...' : 'Lưu từ' }}</button>
+        <div class="editor-actions">
+          <button class="primary-button" type="submit" :disabled="isSaving">{{ isSaving ? 'Đang lưu...' : 'Lưu từ' }}</button>
+          <button class="text-button" type="button" :disabled="isSaving" @click="closeEditor">Hủy</button>
+        </div>
       </form>
 
+      <div class="field search-field">
+        <label for="vocab-search">Tìm từ hoặc cách đọc</label>
+        <div class="search-controls">
+          <input id="vocab-search" v-model="searchInput" type="text" maxlength="100" placeholder="Ví dụ 食べる hoặc たべる" />
+          <button v-if="searchInput" class="text-button" type="button" @click="clearSearch">Xóa tìm kiếm</button>
+        </div>
+      </div>
       <div class="toolbar">
         <label for="level-filter">Cấp độ</label>
         <select id="level-filter" v-model.number="level">
@@ -217,7 +276,7 @@ async function logout(): Promise<void> {
         <span v-if="result" class="result-count">{{ result.totalCount }} từ</span>
       </div>
 
-      <p v-if="actionError && !showCreateForm" class="error" role="alert">{{ actionError }}</p>
+      <p v-if="actionError && !(showEditor && canManageCatalog)" class="error" role="alert">{{ actionError }}</p>
       <p v-if="permissionError" class="muted" role="status">
         Chưa tải được quyền quản lý kho.
         <button class="text-button" type="button" @click="loadCatalogPermission">Thử lại</button>
@@ -226,7 +285,9 @@ async function logout(): Promise<void> {
       <p v-if="listError" class="error" role="alert">{{ listError }} <button class="text-button" @click="loadVocabs">Thử lại</button></p>
       <AppLoading v-else-if="isLoading && !result" label="Đang tải từ vựng…" />
       <AppLoading v-if="isLoading && result" compact label="Đang cập nhật danh sách…" />
-      <p v-if="!isLoading && result?.items.length === 0" class="muted status">Chưa có từ vựng ở cấp độ này.</p>
+      <p v-if="!listError && !isLoading && result?.items.length === 0" class="muted status">
+        {{ search ? 'Không tìm thấy từ phù hợp.' : 'Chưa có từ vựng ở cấp độ này.' }}
+      </p>
       <div v-if="result" class="vocab-list" :aria-busy="isLoading">
         <article v-for="vocab in result.items" :key="vocab.id" class="vocab-card">
           <div class="vocab-main">
@@ -242,9 +303,13 @@ async function logout(): Promise<void> {
                 :disabled="inReview.has(vocab.id) || addingToReview.has(vocab.id) || deletingId === vocab.id"
                 @click="addToReview(vocab)"
               >{{ inReview.has(vocab.id) ? 'Đã có trong bộ ôn' : addingToReview.has(vocab.id) ? 'Đang thêm...' : 'Thêm vào bộ ôn' }}</button>
+              <button v-if="canManageCatalog" class="text-button" type="button"
+                :disabled="isSaving || deletingId !== null || editingVocab?.id === vocab.id"
+                @click="openEditor(vocab)"
+              >Sửa</button>
               <button
                 v-if="canManageCatalog" class="text-button danger" type="button"
-                :disabled="deletingId !== null || addingToReview.has(vocab.id)"
+                :disabled="deletingId !== null || isSaving || editingVocab?.id === vocab.id || addingToReview.has(vocab.id)"
                 @click="deleteVocab(vocab)"
               >{{ deletingId === vocab.id ? 'Đang xóa...' : 'Xóa' }}</button>
             </div>
@@ -264,6 +329,10 @@ async function logout(): Promise<void> {
 <style scoped>
 .vocab-actions { display: flex; flex-wrap: wrap; gap: 4px 12px; justify-content: flex-end; }
 .catalog-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.editor-actions, .search-controls { display: flex; align-items: center; gap: 12px; }
+.search-field { max-width: 540px; }
+.search-controls input { flex: 1; min-width: 0; }
+.search-controls button { flex-shrink: 0; }
 @media (max-width: 620px) {
   .vocab-main { flex-direction: column; }
   .vocab-actions { justify-content: flex-start; }

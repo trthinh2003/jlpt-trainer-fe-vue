@@ -11,9 +11,11 @@ export interface Vocab {
 }
 
 export type CreateVocabRequest = Omit<Vocab, 'id'>
+export type UpdateVocabContentRequest = Pick<Vocab, 'meaning' | 'exampleSentence' | 'exampleSentenceMeaning'>
 
 export interface GetVocabListParams {
   level?: JlptLevel | null
+  search?: string
   pageNumber?: number
   pageSize?: number
 }

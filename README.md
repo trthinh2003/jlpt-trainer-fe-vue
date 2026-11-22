@@ -54,9 +54,11 @@ New features can follow the same layout under `features/<name>`, with `api/`, `p
 
 ## Review study cards
 
-Sign in, choose **Thêm vào bộ ôn** (Add to review) on a vocabulary item, then open **Ôn tập** (Review). Choose **Hiện đáp án** (Show answer) and rate how well you remembered the card. The server calculates the next review time. Each batch shows up to 20 due vocabulary, kanji, or grammar cards from your review queue.
+Sign in, add a vocabulary, kanji, or grammar item to your review queue with **Thêm vào bộ ôn** (Add to review), then open **Ôn tập** (Review). Choose **Hiện đáp án** (Show answer) or press Space to flip the card. Rate it with the on-screen buttons or keys 1 through 4. Each round shows up to 20 due cards, tracks your progress, and ends with a summary of saved ratings and any skipped cards. The server calculates the next review time.
 
 The vocabulary page fetches catalog permissions from `GET /api/auth/me`. **Thêm từ** (Add vocabulary) and **Xóa** (Delete) are available to catalog managers. [Manage account permissions](https://github.com/trthinh2003/jlpt-trainer-api/blob/main/README.md#catalog-management).
+
+Use **Chọn nhiều** (Select multiple) in the vocabulary, Kanji, or grammar catalog to select up to 20 items of one type across pages. Add the selection to your review queue to see how many items were added, already in your queue, or missing from the catalog.
 
 ## Import study materials from Excel
 

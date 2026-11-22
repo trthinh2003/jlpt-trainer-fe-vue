@@ -4,9 +4,11 @@ import { useRouter } from 'vue-router'
 import { clearSession, useSession } from '@/features/auth/store/session'
 import CatalogImportPanel from '@/features/catalog/components/CatalogImportPanel.vue'
 import CatalogNavigation from '@/features/catalog/components/CatalogNavigation.vue'
+import CatalogReviewAction from '@/features/catalog/components/CatalogReviewAction.vue'
+import CatalogReviewPanel from '@/features/catalog/components/CatalogReviewPanel.vue'
 import { useCatalogPermission } from '@/features/catalog/composables/useCatalogPermission'
+import { useCatalogReview } from '@/features/catalog/composables/useCatalogReview'
 import type { CatalogImportResult } from '@/features/catalog/types'
-import { reviewApi } from '@/features/review/api/review.api'
 import { ApiError, getErrorMessage } from '@/shared/api/http'
 import AppLoading from '@/shared/components/AppLoading.vue'
 import { CardType, JlptLevel, type PagedResult } from '@/shared/types/api'
@@ -27,9 +29,13 @@ const actionError = ref('')
 const { canManageCatalog, permissionError, loadCatalogPermission, refreshAfterForbidden } = useCatalogPermission()
 const isSaving = ref(false)
 const deletingId = ref<string | null>(null)
-const addingToReview = ref(new Set<string>())
-const inReview = ref(new Set<string>())
-const reviewError = ref('')
+const review = useCatalogReview({
+  cardType: () => CardType.Vocab,
+  visibleIds: () => result.value?.items.filter(item => item.id !== deletingId.value).map(item => item.id) ?? [],
+  canSelectPage: () => !isLoading.value && !listError.value && searchInput.value.trim() === search.value,
+  onMissing: () => { void loadVocabs() },
+})
+const { adding, added, selected, addingBatch } = review
 const showCreateForm = ref(false)
 const editingVocab = ref<Vocab | null>(null)
 const showEditor = computed(() => showCreateForm.value || editingVocab.value !== null)
@@ -163,33 +169,20 @@ async function saveVocab(): Promise<void> {
 }
 
 async function deleteVocab(vocab: Vocab): Promise<void> {
-  if (!canManageCatalog.value || deletingId.value || isSaving.value || addingToReview.value.has(vocab.id)) return
+  if (!canManageCatalog.value || deletingId.value || isSaving.value || adding.value.has(vocab.id) ||
+      (addingBatch.value && selected.value.has(vocab.id))) return
   if (!window.confirm(`Xóa từ "${vocab.word}" khỏi kho chung và bộ ôn liên quan?`)) return
   deletingId.value = vocab.id
   actionError.value = ''
   try {
     await vocabApi.delete(vocab.id)
-    inReview.value.delete(vocab.id)
+    added.value.delete(vocab.id)
+    selected.value.delete(vocab.id)
     await loadVocabs()
   } catch (error) {
     handleCatalogWriteError(error)
   } finally {
     deletingId.value = null
-  }
-}
-
-async function addToReview(vocab: Vocab): Promise<void> {
-  if (deletingId.value === vocab.id || addingToReview.value.has(vocab.id) || inReview.value.has(vocab.id)) return
-  addingToReview.value.add(vocab.id)
-  reviewError.value = ''
-  try {
-    await reviewApi.add(CardType.Vocab, vocab.id)
-    inReview.value.add(vocab.id)
-  } catch (error) {
-    if (error instanceof ApiError && error.status === 409) inReview.value.add(vocab.id)
-    else reviewError.value = `Không thể thêm “${vocab.word}” vào bộ ôn. ${getErrorMessage(error)}`
-  } finally {
-    addingToReview.value.delete(vocab.id)
   }
 }
 
@@ -275,13 +268,13 @@ async function logout(): Promise<void> {
         </select>
         <span v-if="result" class="result-count">{{ result.totalCount }} từ</span>
       </div>
+      <CatalogReviewPanel kind="vocab" :review="review" />
 
       <p v-if="actionError && !(showEditor && canManageCatalog)" class="error" role="alert">{{ actionError }}</p>
       <p v-if="permissionError" class="muted" role="status">
         Chưa tải được quyền quản lý kho.
         <button class="text-button" type="button" @click="loadCatalogPermission">Thử lại</button>
       </p>
-      <p v-if="reviewError" class="error" role="alert">{{ reviewError }}</p>
       <p v-if="listError" class="error" role="alert">{{ listError }} <button class="text-button" @click="loadVocabs">Thử lại</button></p>
       <AppLoading v-else-if="isLoading && !result" label="Đang tải từ vựng…" />
       <AppLoading v-if="isLoading && result" compact label="Đang cập nhật danh sách…" />
@@ -298,18 +291,15 @@ async function logout(): Promise<void> {
               <p v-if="vocab.exampleSentence" class="example">{{ vocab.exampleSentence }}<span v-if="vocab.exampleSentenceMeaning"> — {{ vocab.exampleSentenceMeaning }}</span></p>
             </div>
             <div class="vocab-actions">
-              <button
-                class="text-button" type="button"
-                :disabled="inReview.has(vocab.id) || addingToReview.has(vocab.id) || deletingId === vocab.id"
-                @click="addToReview(vocab)"
-              >{{ inReview.has(vocab.id) ? 'Đã có trong bộ ôn' : addingToReview.has(vocab.id) ? 'Đang thêm...' : 'Thêm vào bộ ôn' }}</button>
+              <CatalogReviewAction :review="review" :item-id="vocab.id" :title="vocab.word" :disabled="deletingId === vocab.id" />
               <button v-if="canManageCatalog" class="text-button" type="button"
                 :disabled="isSaving || deletingId !== null || editingVocab?.id === vocab.id"
                 @click="openEditor(vocab)"
               >Sửa</button>
               <button
                 v-if="canManageCatalog" class="text-button danger" type="button"
-                :disabled="deletingId !== null || isSaving || editingVocab?.id === vocab.id || addingToReview.has(vocab.id)"
+                :disabled="deletingId !== null || isSaving || editingVocab?.id === vocab.id || adding.has(vocab.id) ||
+                  (addingBatch && selected.has(vocab.id))"
                 @click="deleteVocab(vocab)"
               >{{ deletingId === vocab.id ? 'Đang xóa...' : 'Xóa' }}</button>
             </div>

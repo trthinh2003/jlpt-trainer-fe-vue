@@ -10,11 +10,22 @@ export interface ReviewContent {
   exampleMeaning?: string | null
 }
 
+export interface ReviewCardAddition {
+  addedIds: string[]
+  alreadyAddedIds: string[]
+  missingIds: string[]
+}
+
 const path = '/reviewcards'
 
 export const reviewApi = {
   add(cardType: CardType, referenceId: string, signal?: AbortSignal): Promise<string> {
     return request(path, { method: 'POST', body: JSON.stringify({ cardType, referenceId }), signal })
+  },
+  addBatch(cardType: CardType, referenceIds: string[], signal: AbortSignal): Promise<ReviewCardAddition> {
+    return request(`${path}/batch`, {
+      method: 'POST', body: JSON.stringify({ cardType, referenceIds }), signal,
+    })
   },
   getDue(): Promise<DueCard[]> {
     return request(`${path}/due`)

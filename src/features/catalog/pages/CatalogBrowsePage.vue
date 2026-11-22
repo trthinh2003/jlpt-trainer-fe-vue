@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import { computed, nextTick, onUnmounted, ref, watch } from 'vue'
-import { reviewApi } from '@/features/review/api/review.api'
 import { ApiError, getErrorMessage } from '@/shared/api/http'
 import AppLoading from '@/shared/components/AppLoading.vue'
 import { JlptLevel, type PagedResult } from '@/shared/types/api'
 import { catalogApi } from '../api/catalog.api'
 import CatalogImportPanel from '../components/CatalogImportPanel.vue'
 import CatalogNavigation from '../components/CatalogNavigation.vue'
+import CatalogReviewAction from '../components/CatalogReviewAction.vue'
+import CatalogReviewPanel from '../components/CatalogReviewPanel.vue'
 import { useCatalogPermission } from '../composables/useCatalogPermission'
+import { useCatalogReview } from '../composables/useCatalogReview'
 import { catalog, type CatalogBrowseItem, type CatalogImportResult } from '../types'
 
 const props = defineProps<{ kind: 'kanji' | 'grammar' }>()
@@ -27,11 +29,14 @@ const editing = ref<CatalogBrowseItem | null>(null)
 const editorInput = ref<HTMLInputElement | null>(null)
 const editError = ref('')
 const saving = ref(false)
-const adding = ref(new Set<string>())
-const added = ref(new Set<string>())
+const review = useCatalogReview({
+  cardType: () => metadata.value.cardType,
+  visibleIds: () => result.value?.items.map(item => item.id) ?? [],
+  canSelectPage: () => !loading.value && !listError.value && searchInput.value.trim() === search.value,
+  onMissing: () => { void load() },
+})
 const { canManageCatalog, permissionError, loadCatalogPermission, refreshAfterForbidden } = useCatalogPermission()
 let listRequest: AbortController | undefined
-let reviewRequest = new AbortController()
 let editRequest: AbortController | undefined
 
 async function load(): Promise<void> {
@@ -107,26 +112,7 @@ function refreshAfterImport(summary: CatalogImportResult): void {
   if (summary.successCount > 0) void load()
 }
 
-async function addToReview(item: CatalogBrowseItem): Promise<void> {
-  if (adding.value.has(item.id) || added.value.has(item.id)) return
-  const { signal } = reviewRequest
-  adding.value.add(item.id)
-  actionError.value = ''
-  try {
-    await reviewApi.add(metadata.value.cardType, item.id, signal)
-    if (!signal.aborted) added.value.add(item.id)
-  } catch (error) {
-    if (signal.aborted) return
-    if (error instanceof ApiError && error.status === 409) added.value.add(item.id)
-    else actionError.value = getErrorMessage(error)
-  } finally {
-    if (!signal.aborted) adding.value.delete(item.id)
-  }
-}
-
 watch(() => props.kind, () => {
-  reviewRequest.abort()
-  reviewRequest = new AbortController()
   result.value = null
   showImport.value = false
   editing.value = null
@@ -134,8 +120,6 @@ watch(() => props.kind, () => {
   saving.value = false
   clearSearch()
   actionError.value = ''
-  adding.value.clear()
-  added.value.clear()
   page.value = 1
 })
 watch(searchInput, (value, _, onCleanup) => {
@@ -146,7 +130,6 @@ watch([level, search], () => { page.value = 1 })
 watch([() => props.kind, level, search, page], load, { immediate: true })
 onUnmounted(() => {
   listRequest?.abort()
-  reviewRequest.abort()
   editRequest?.abort()
 })
 </script>
@@ -210,6 +193,7 @@ onUnmounted(() => {
       </select>
       <span v-if="result" class="result-count">{{ result.totalCount }} mục</span>
     </div>
+    <CatalogReviewPanel :kind="kind" :review="review" />
     <p v-if="permissionError" class="muted" role="status">
       Chưa tải được quyền quản lý kho.
       <button class="text-button" type="button" @click="loadCatalogPermission">Thử lại</button>
@@ -235,10 +219,7 @@ onUnmounted(() => {
             </p>
           </div>
           <div class="catalog-actions">
-            <button class="text-button" type="button" :disabled="adding.has(item.id) || added.has(item.id)"
-              @click="addToReview(item)">
-              {{ added.has(item.id) ? 'Đã có trong bộ ôn' : adding.has(item.id) ? 'Đang thêm…' : 'Thêm vào bộ ôn' }}
-            </button>
+            <CatalogReviewAction :review="review" :item-id="item.id" :title="item.title" />
             <button v-if="canManageCatalog" class="text-button" type="button"
               :aria-label="`Sửa ${item.title}`" :disabled="saving || editing?.id === item.id" @click="edit(item)">Sửa</button>
           </div>

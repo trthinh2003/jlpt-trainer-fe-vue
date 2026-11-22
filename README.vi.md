@@ -54,9 +54,11 @@ Các feature khác có thể bổ sung theo cùng mẫu `features/<tên>/api`, `
 
 ## Ôn từ vựng
 
-Đăng nhập, chọn **Thêm vào bộ ôn** ở một từ vựng rồi mở **Ôn tập**. Chọn **Hiện đáp án** và chấm mức nhớ để server cập nhật lịch ôn. Trang tải theo lượt tối đa 20 thẻ và hiển thị các thẻ từ vựng, kanji hoặc ngữ pháp đã có trong bộ ôn.
+Đăng nhập, chọn **Thêm vào bộ ôn** ở một mục từ vựng, Kanji hoặc ngữ pháp rồi mở **Ôn tập**. Bấm **Hiện đáp án** hoặc phím Space để lật thẻ, sau đó chọn mức nhớ bằng nút trên màn hình hoặc phím 1 đến 4. Mỗi lượt có tối đa 20 thẻ đến hạn, thanh tiến độ và tổng kết số thẻ đã lưu theo từng mức cùng số thẻ đã bỏ qua. Server tính lịch ôn tiếp theo.
 
 Trang từ vựng lấy quyền quản lý kho qua `GET /api/auth/me`. Nút **Thêm từ** và **Xóa** dành cho tài khoản quản lý kho. [Cấp quyền quản lý kho](https://github.com/trthinh2003/jlpt-trainer-api/blob/main/README.vi.md#quản-lý-kho-học-liệu).
+
+Trong kho Từ vựng, Kanji hoặc Ngữ pháp, bấm **Chọn nhiều** để chọn tối đa 20 mục cùng loại qua nhiều trang. Khi thêm vào bộ ôn, màn hình báo số mục đã thêm, đã có trong bộ ôn hoặc không còn trong kho.
 
 ## Nhập học liệu từ Excel
 

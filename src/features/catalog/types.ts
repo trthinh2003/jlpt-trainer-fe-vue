@@ -8,11 +8,18 @@ export const catalog = {
   grammar: { path: '/grammarpoints', label: 'Ngữ pháp', route: 'grammar', template: 'grammar_point_import_template.xlsx', cardType: CardType.Grammar },
 } as const
 
-export interface CatalogImportResult {
+interface CatalogImportSummary {
   totalRows: number
-  successCount: number
   skippedDuplicateCount: number
   errors: { rowNumber: number; message: string }[]
+}
+
+export interface CatalogImportPreview extends CatalogImportSummary {
+  readyCount: number
+}
+
+export interface CatalogImportResult extends CatalogImportSummary {
+  successCount: number
 }
 
 export interface CatalogBrowseItem {

@@ -60,7 +60,7 @@ The vocabulary page fetches catalog permissions from `GET /api/auth/me`. **Thêm
 
 ## Import study materials from Excel
 
-Catalog managers can open **Nhập Excel** (Import Excel) on the vocabulary, kanji, or grammar page. Download that catalog's template, fill its first worksheet, and upload an `.xlsx` file up to 5 MB. Results show imported and duplicate row counts and report errors by Excel row number. Learners can browse all three catalogs and add items to their personal review queue.
+Catalog managers can open **Nhập Excel** (Import Excel) on the vocabulary, kanji, or grammar page. Download the template, fill its first worksheet, and select an `.xlsx` file up to 5 MB. Choose **Xem trước** (Preview) to see how many rows are ready, how many are duplicates, and which Excel rows have errors. Choose **Xác nhận nhập** (Confirm import) to save valid new rows and see the actual import count. Learners can browse all three catalogs and add items to their personal review queue.
 
 ## Change or reset a password
 

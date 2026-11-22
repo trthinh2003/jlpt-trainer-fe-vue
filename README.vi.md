@@ -60,7 +60,7 @@ Trang từ vựng lấy quyền quản lý kho qua `GET /api/auth/me`. Nút **Th
 
 ## Nhập học liệu từ Excel
 
-Tài khoản quản lý kho mở **Nhập Excel** tại trang **Từ vựng**, **Kanji** hoặc **Ngữ pháp**. Tải mẫu của nhóm đã chọn, điền trang tính đầu và tải file `.xlsx` tối đa 5 MB lên. Kết quả hiển thị số dòng đã nhập, dòng trùng và lỗi theo số dòng Excel. Người học có thể duyệt và thêm mục vào bộ ôn cá nhân.
+Tài khoản quản lý kho mở **Nhập Excel** tại trang **Từ vựng**, **Kanji** hoặc **Ngữ pháp**. Tải mẫu của nhóm đã chọn, điền trang tính đầu và chọn file `.xlsx` tối đa 5 MB. Bấm **Xem trước** để kiểm tra số dòng sẵn sàng, dòng trùng và lỗi theo số dòng Excel. Bấm **Xác nhận nhập** để ghi các dòng mới hợp lệ và xem số dòng thực tế đã nhập. Người học có thể duyệt và thêm mục vào bộ ôn cá nhân.
 
 ## Đổi mật khẩu
 

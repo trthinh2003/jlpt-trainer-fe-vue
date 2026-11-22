@@ -1,6 +1,14 @@
 import { request } from '@/shared/api/http'
 import type { GrammarPoint, JlptLevel, Kanji, PagedResult } from '@/shared/types/api'
-import { catalog, type CatalogBrowseItem, type CatalogContent, type CatalogImportResult, type CatalogKind } from '../types'
+import {
+  catalog, type CatalogBrowseItem, type CatalogContent, type CatalogImportPreview, type CatalogImportResult, type CatalogKind,
+} from '../types'
+
+function uploadWorkbook<T>(path: string, file: File, signal: AbortSignal): Promise<T> {
+  const body = new FormData()
+  body.append('file', file)
+  return request(path, { method: 'POST', body, signal, timeoutMs: 90_000 })
+}
 
 export const catalogApi = {
   async getList(
@@ -36,9 +44,10 @@ export const catalogApi = {
   getTemplate(kind: CatalogKind, signal: AbortSignal): Promise<Blob> {
     return request(`${catalog[kind].path}/import/template`, { signal }, (response) => response.blob())
   },
+  previewImport(kind: CatalogKind, file: File, signal: AbortSignal): Promise<CatalogImportPreview> {
+    return uploadWorkbook(`${catalog[kind].path}/import/preview`, file, signal)
+  },
   import(kind: CatalogKind, file: File, signal: AbortSignal): Promise<CatalogImportResult> {
-    const body = new FormData()
-    body.append('file', file)
-    return request(`${catalog[kind].path}/import`, { method: 'POST', body, signal, timeoutMs: 90_000 })
+    return uploadWorkbook(`${catalog[kind].path}/import`, file, signal)
   },
 }

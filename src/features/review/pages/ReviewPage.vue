@@ -1,9 +1,13 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import KanjiReadings from '@/features/catalog/components/KanjiReadings.vue'
+import VocabImagePreview from '@/features/vocab/components/VocabImagePreview.vue'
 import { ApiError, getErrorMessage } from '@/shared/api/http'
 import AppLoading from '@/shared/components/AppLoading.vue'
-import { CardType, ReviewGrade, type DueCard } from '@/shared/types/api'
-import { reviewApi, type ReviewContent } from '../api/review.api'
+import JapaneseExample from '@/shared/components/JapaneseExample.vue'
+import PronunciationButton from '@/shared/components/PronunciationButton.vue'
+import { CardType, JlptLevel, ReviewGrade, type DueCard } from '@/shared/types/api'
+import { reviewApi, type DueCardFilters, type ReviewContent } from '../api/review.api'
 
 const grades = [
   { value: ReviewGrade.Again, label: 'Quên' },
@@ -16,6 +20,17 @@ const cardTypeLabels = {
   [CardType.Kanji]: 'Kanji',
   [CardType.Grammar]: 'Ngữ pháp',
 }
+const cardTypes = [CardType.Vocab, CardType.Kanji, CardType.Grammar]
+const levels = [JlptLevel.N5, JlptLevel.N4, JlptLevel.N3, JlptLevel.N2, JlptLevel.N1]
+const selectedType = ref<CardType | ''>('')
+const selectedLevel = ref<JlptLevel | ''>('')
+const appliedFilters = ref<DueCardFilters>({})
+const reviewScope = computed(() => {
+  const { cardType, level } = appliedFilters.value
+  const typeLabel = cardType === undefined ? '' : cardTypeLabels[cardType]
+  const levelLabel = level === undefined ? '' : `N${level}`
+  return [typeLabel, levelLabel].filter(Boolean).join(' · ')
+})
 const dateFormat = new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' })
 const cards = ref<DueCard[]>([])
 const currentCard = computed(() => cards.value[0])
@@ -41,19 +56,28 @@ const revealButton = ref<HTMLButtonElement | null>(null)
 const answerHeading = ref<HTMLHeadingElement | null>(null)
 const summaryHeading = ref<HTMLHeadingElement | null>(null)
 const retryContentButton = ref<HTMLButtonElement | null>(null)
+const queueRequest = new AbortController()
+let requestedFilters: DueCardFilters = {}
 
-async function loadDueCards(): Promise<void> {
-  if (queueLoading.value) return
+async function loadDueCards(filters: DueCardFilters = {
+  cardType: selectedType.value === '' ? undefined : selectedType.value,
+  level: selectedLevel.value === '' ? undefined : selectedLevel.value,
+}): Promise<void> {
+  if (queueLoading.value || isSubmitting.value) return
+  requestedFilters = filters
   queueLoading.value = true
   queueError.value = ''
   try {
-    cards.value = await reviewApi.getDue()
+    const dueCards = await reviewApi.getDue(filters, queueRequest.signal)
+    if (queueRequest.signal.aborted) return
+    cards.value = dueCards
+    appliedFilters.value = filters
     totalCards.value = cards.value.length
     skippedCards.value = 0
     savedGrades.value = []
     submitFeedback.value = ''
   } catch (error) {
-    queueError.value = getErrorMessage(error)
+    if (!queueRequest.signal.aborted) queueError.value = getErrorMessage(error)
   } finally {
     queueLoading.value = false
   }
@@ -129,7 +153,8 @@ async function submitGrade(grade: ReviewGrade): Promise<void> {
 
 function handleKeydown(event: KeyboardEvent): void {
   if (event.defaultPrevented || event.repeat || event.isComposing ||
-      event.ctrlKey || event.altKey || event.metaKey || event.shiftKey || !content.value) return
+      event.ctrlKey || event.altKey || event.metaKey || event.shiftKey ||
+      queueLoading.value || queueError.value || !content.value) return
   const target = event.target
   if (target instanceof HTMLElement &&
       (target.isContentEditable || target.closest('input, textarea, select, [role="textbox"]'))) return
@@ -152,7 +177,10 @@ onMounted(() => {
   window.addEventListener('keydown', handleKeydown)
   void loadDueCards()
 })
-onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
+onUnmounted(() => {
+  queueRequest.abort()
+  window.removeEventListener('keydown', handleKeydown)
+})
 </script>
 
 <template>
@@ -166,14 +194,32 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
         </nav>
       </div>
 
+      <form class="review-filters" aria-label="Lọc thẻ đến hạn" @submit.prevent="loadDueCards()">
+        <div class="field">
+          <label for="review-card-type">Loại thẻ</label>
+          <select id="review-card-type" v-model="selectedType" :disabled="queueLoading">
+            <option value="">Tất cả</option>
+            <option v-for="type in cardTypes" :key="type" :value="type">{{ cardTypeLabels[type] }}</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="review-level">Cấp JLPT</label>
+          <select id="review-level" v-model="selectedLevel" :disabled="queueLoading">
+            <option value="">Tất cả</option>
+            <option v-for="level in levels" :key="level" :value="level">N{{ level }}</option>
+          </select>
+        </div>
+        <button class="primary-button" type="submit" :disabled="queueLoading || isSubmitting">Tải thẻ đến hạn</button>
+      </form>
+
       <AppLoading v-if="queueLoading" label="Đang tải thẻ đến hạn…" />
       <section v-else-if="queueError" class="vocab-card">
         <p class="error" role="alert">{{ queueError }}</p>
-        <button class="text-button" type="button" @click="loadDueCards">Tải lại danh sách</button>
+        <button class="text-button" type="button" @click="loadDueCards(requestedFilters)">Tải lại danh sách</button>
       </section>
       <section v-else-if="totalCards === 0" class="vocab-card">
         <h2>Chưa có thẻ đến hạn</h2>
-        <button class="primary-button" type="button" @click="loadDueCards">Kiểm tra thẻ đến hạn</button>
+        <p v-if="reviewScope" class="review-scope muted">{{ reviewScope }}</p>
       </section>
       <template v-else>
         <div class="review-progress">
@@ -184,6 +230,7 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
               <span>{{ processedCards }} / {{ totalCards }} thẻ</span>
             </div>
             <progress :value="processedCards" :max="totalCards" aria-label="Tiến độ lượt ôn" />
+            <p v-if="reviewScope" class="review-scope muted">{{ reviewScope }}</p>
           </div>
         </div>
 
@@ -196,7 +243,7 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
               <dd>{{ grade.count }}</dd>
             </div>
           </dl>
-          <button class="primary-button" type="button" @click="loadDueCards">Kiểm tra thẻ đến hạn</button>
+          <button class="primary-button" type="button" @click="loadDueCards(appliedFilters)">Kiểm tra thẻ đến hạn</button>
         </section>
         <section v-else-if="contentError" class="vocab-card review-placeholder">
           <p class="error" role="alert">{{ contentError }}</p>
@@ -219,13 +266,18 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
             <h2 lang="ja">{{ content.prompt }}</h2>
           </div>
           <div v-else class="card-face card-back">
-            <p class="card-prompt" lang="ja">{{ content.prompt }}</p>
-            <h2 ref="answerHeading" tabindex="-1">{{ content.meaning }}</h2>
-            <p v-if="content.reading" class="reading">{{ content.reading }}</p>
-            <div v-if="content.example" class="card-example">
-              <p lang="ja">{{ content.example }}</p>
-              <p v-if="content.exampleMeaning" class="muted">{{ content.exampleMeaning }}</p>
+            <div class="card-word">
+              <p class="card-prompt" lang="ja">{{ content.prompt }}</p>
+              <PronunciationButton v-if="currentCard.cardType === CardType.Vocab"
+                :text="content.prompt" :reading="content.reading" />
             </div>
+            <h2 ref="answerHeading" tabindex="-1">{{ content.meaning }}</h2>
+            <p v-if="content.reading" class="reading" lang="ja">{{ content.reading }}</p>
+            <VocabImagePreview v-if="content.imageVocabId" :vocab-id="content.imageVocabId" :word="content.prompt" />
+            <KanjiReadings v-if="currentCard.cardType === CardType.Kanji"
+              :character="content.prompt" :on-yomi="content.onYomi" :kun-yomi="content.kunYomi" />
+            <JapaneseExample v-if="content.example" class="card-example"
+              :sentence="content.example" :translation="content.exampleMeaning" />
           </div>
           <footer class="card-controls">
             <template v-if="!isRevealed">
@@ -260,6 +312,15 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
 <style scoped>
 .review-content { max-width: 740px; }
 .review-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.review-filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+  align-items: end;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.review-filters .field { margin: 0; }
+.review-scope { margin: 8px 0 0; font-size: .875rem; }
 .review-progress {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
@@ -317,11 +378,11 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
 .review-summary h2:focus { outline: none; }
 .card-front h2 { font-size: clamp(1.65rem, 5.5vw, 2.75rem); }
 .card-back h2 { font-size: clamp(1.25rem, 3.5vw, 1.75rem); }
-.card-prompt { margin-bottom: 8px; color: #6b6558; font-weight: 700; }
+.card-word { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; margin-bottom: 8px; }
+.card-prompt { margin: 0; color: #6b6558; font-weight: 700; }
 .card-back .reading { margin: 10px 0 0; font-size: .95rem; }
-.card-example { margin-top: 16px; padding-top: 12px; border-top: 1px solid #e8dccf; }
-.card-example p { margin: 0; white-space: pre-line; }
-.card-example p + p { margin-top: 4px; font-size: .875rem; }
+.card-back :deep(.pronunciation-line) { justify-content: center; }
+.card-example { margin-top: 16px; padding-top: 12px; border-top: 1px solid #e8dccf; font-size: .875rem; }
 .card-controls { text-align: center; }
 .reveal-button { min-width: min(100%, 14rem); }
 .shortcut-hint { display: inline-block; margin-left: 12px; font-size: .875rem; }
@@ -356,6 +417,8 @@ kbd {
   from { opacity: 0; transform: translateY(4px); }
 }
 @media (max-width: 450px) {
+  .review-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .review-filters button { grid-column: 1 / -1; }
   .review-card { padding-inline: 16px; }
   .reveal-button { width: 100%; }
 }

@@ -48,6 +48,18 @@ export const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/audio-lessons',
+      name: 'audio-lessons',
+      component: () => import('@/features/audio-lessons/pages/AudioLessonsPage.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/video-lessons',
+      name: 'video-lessons',
+      component: () => import('@/features/video-lessons/pages/VideoLessonsPage.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/review',
       name: 'review',
       component: () => import('@/features/review/pages/ReviewPage.vue'),

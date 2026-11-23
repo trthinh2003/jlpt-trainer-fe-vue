@@ -3,6 +3,7 @@ import { computed, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ApiError, getErrorMessage } from '@/shared/api/http'
 import AppLoading from '@/shared/components/AppLoading.vue'
+import PronunciationButton from '@/shared/components/PronunciationButton.vue'
 import { JlptLevel } from '@/shared/types/api'
 import { mockTestApi } from '../api/mock-test.api'
 import type { MockTestAttempt } from '../types'
@@ -24,6 +25,7 @@ let submitRequest: AbortController | undefined
 
 const answered = computed(() => choices.value.filter((choice) => choice !== null).length)
 const clock = computed(() => `${Math.floor(remaining.value / 60)}:${String(remaining.value % 60).padStart(2, '0')}`)
+const questionControlsDisabled = computed(() => submitting.value || confirming.value || uncertain.value || remaining.value === 0)
 const timer = window.setInterval(updateTime, 250)
 
 function updateTime(): void {
@@ -153,9 +155,13 @@ onUnmounted(() => {
       </div>
       <p v-if="remaining === 0 && !uncertain" class="error" role="status">Phiên làm bài đã hết thời gian.</p>
       <fieldset v-for="(question, index) in attempt.questions" :key="index" class="vocab-card question"
-        :disabled="submitting || confirming || uncertain || remaining === 0">
+        :disabled="questionControlsDisabled">
         <legend>{{ index + 1 }}. <strong lang="ja">{{ question.word }}</strong></legend>
-        <p class="reading" lang="ja">{{ question.reading }}</p>
+        <p class="reading pronunciation-line">
+          <span lang="ja">{{ question.reading }}</span>
+          <PronunciationButton v-if="!questionControlsDisabled"
+            :text="question.word" :reading="question.reading" />
+        </p>
         <label v-for="(option, optionIndex) in question.choices" :key="optionIndex">
           <input type="radio" :name="`question-${index}`" :checked="choices[index] === optionIndex"
             @change="choose(index, optionIndex)" />

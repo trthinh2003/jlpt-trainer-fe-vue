@@ -27,7 +27,6 @@ export interface CatalogBrowseItem {
   title: string
   level: JlptLevel
   content: CatalogContent
-  reading?: string
   detail?: string
 }
 

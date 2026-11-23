@@ -11,8 +11,11 @@ import { useCatalogReview } from '@/features/catalog/composables/useCatalogRevie
 import type { CatalogImportResult } from '@/features/catalog/types'
 import { ApiError, getErrorMessage } from '@/shared/api/http'
 import AppLoading from '@/shared/components/AppLoading.vue'
+import JapaneseExample from '@/shared/components/JapaneseExample.vue'
+import PronunciationButton from '@/shared/components/PronunciationButton.vue'
 import { CardType, JlptLevel, type PagedResult } from '@/shared/types/api'
 import { vocabApi } from '../api/vocab.api'
+import VocabImageEditor from '../components/VocabImageEditor.vue'
 import type { Vocab } from '../types'
 
 const router = useRouter()
@@ -127,6 +130,12 @@ async function openEditor(vocab: Vocab): Promise<void> {
   })
   await nextTick()
   meaningInput.value?.focus()
+}
+
+function updateImageStatus(hasImage: boolean): void {
+  if (!editingVocab.value) return
+  editingVocab.value = { ...editingVocab.value, hasImage }
+  void loadVocabs()
 }
 
 function clearSearch(): void {
@@ -253,6 +262,9 @@ async function logout(): Promise<void> {
         </div>
       </form>
 
+      <VocabImageEditor v-if="editingVocab && canManageCatalog" :key="editingVocab.id" :vocab="editingVocab"
+        @updated="updateImageStatus" @forbidden="handleForbidden" />
+
       <div class="field search-field">
         <label for="vocab-search">Tìm từ hoặc cách đọc</label>
         <div class="search-controls">
@@ -285,10 +297,15 @@ async function logout(): Promise<void> {
         <article v-for="vocab in result.items" :key="vocab.id" class="vocab-card">
           <div class="vocab-main">
             <div>
-              <div class="word-line"><h2>{{ vocab.word }}</h2><span class="level-badge">N{{ vocab.level }}</span></div>
-              <p class="reading">{{ vocab.reading }}</p>
+              <div class="word-line">
+                <h2 lang="ja">{{ vocab.word }}</h2>
+                <PronunciationButton :text="vocab.word" :reading="vocab.reading" />
+                <span class="level-badge">N{{ vocab.level }}</span>
+              </div>
+              <p class="reading" lang="ja">{{ vocab.reading }}</p>
               <p class="meaning">{{ vocab.meaning }}</p>
-              <p v-if="vocab.exampleSentence" class="example">{{ vocab.exampleSentence }}<span v-if="vocab.exampleSentenceMeaning"> — {{ vocab.exampleSentenceMeaning }}</span></p>
+              <JapaneseExample v-if="vocab.exampleSentence" :sentence="vocab.exampleSentence"
+                :translation="vocab.exampleSentenceMeaning" />
             </div>
             <div class="vocab-actions">
               <CatalogReviewAction :review="review" :item-id="vocab.id" :title="vocab.word" :disabled="deletingId === vocab.id" />

@@ -22,7 +22,6 @@ export const catalogApi = {
       const result = await request<PagedResult<Kanji>>(path, { signal })
       const items = result.items.map<CatalogBrowseItem>(({ id, character, onYomi, kunYomi, meaning, strokeCount, level }) => ({
         id, title: character, level, content: { kind, meaning, onYomi, kunYomi },
-        reading: [onYomi, kunYomi].filter(Boolean).join(' · '),
         detail: `${strokeCount} nét`,
       }))
       return { ...result, items }

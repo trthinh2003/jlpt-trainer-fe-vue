@@ -60,6 +60,14 @@ The vocabulary page fetches catalog permissions from `GET /api/auth/me`. **Thêm
 
 Use **Chọn nhiều** (Select multiple) in the vocabulary, Kanji, or grammar catalog to select up to 20 items of one type across pages. Add the selection to your review queue to see how many items were added, already in your queue, or missing from the catalog.
 
+In **Ôn tập** (Review), choose a card type or JLPT level, then select **Tải thẻ đến hạn** (Load due cards) to start a filtered round. Both filters default to **Tất cả** (All).
+
+Vocabulary images appear after you reveal the answer. If an image fails to load, choose **Tải lại ảnh** (Reload image) or continue grading. Catalog managers can upload or remove the image from the vocabulary editor.
+
+Open **Bài học video** (Video lessons) from the catalog navigation to browse by JLPT level and play or seek through a lesson. Catalog managers can publish and unpublish MP4 lessons from this page.
+
+Open **Học qua audio** (Learn with audio) to listen with synchronized Japanese lyrics. Click a line to seek. Vocabulary appears when playback ends, and each word can be added to the review queue.
+
 ## Import study materials from Excel
 
 Catalog managers can open **Nhập Excel** (Import Excel) on the vocabulary, kanji, or grammar page. Download the template, fill its first worksheet, and select an `.xlsx` file up to 5 MB. Choose **Xem trước** (Preview) to see how many rows are ready, how many are duplicates, and which Excel rows have errors. Choose **Xác nhận nhập** (Confirm import) to save valid new rows and see the actual import count. Learners can browse all three catalogs and add items to their personal review queue.

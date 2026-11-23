@@ -8,9 +8,10 @@ export interface Vocab {
   exampleSentence: string | null
   exampleSentenceMeaning: string | null
   level: JlptLevel
+  hasImage?: boolean
 }
 
-export type CreateVocabRequest = Omit<Vocab, 'id'>
+export type CreateVocabRequest = Omit<Vocab, 'id' | 'hasImage'>
 export type UpdateVocabContentRequest = Pick<Vocab, 'meaning' | 'exampleSentence' | 'exampleSentenceMeaning'>
 
 export interface GetVocabListParams {

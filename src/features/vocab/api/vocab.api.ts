@@ -25,6 +25,17 @@ export const vocabApi = {
       method: 'PUT', body: JSON.stringify(payload),
     })
   },
+  getImage(id: string, signal: AbortSignal): Promise<{ url: string } | undefined> {
+    return request(`${path}/${encodeURIComponent(id)}/image`, { signal, cache: 'no-store' })
+  },
+  uploadImage(id: string, file: File, signal: AbortSignal): Promise<void> {
+    const body = new FormData()
+    body.set('file', file)
+    return request(`${path}/${encodeURIComponent(id)}/image`, { method: 'PUT', body, signal, timeoutMs: 60_000 })
+  },
+  removeImage(id: string, signal: AbortSignal): Promise<void> {
+    return request(`${path}/${encodeURIComponent(id)}/image`, { method: 'DELETE', signal })
+  },
   delete(id: string): Promise<void> {
     return request(`${path}/${encodeURIComponent(id)}`, { method: 'DELETE' })
   },

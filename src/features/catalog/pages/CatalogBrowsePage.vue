@@ -2,12 +2,14 @@
 import { computed, nextTick, onUnmounted, ref, watch } from 'vue'
 import { ApiError, getErrorMessage } from '@/shared/api/http'
 import AppLoading from '@/shared/components/AppLoading.vue'
+import JapaneseExample from '@/shared/components/JapaneseExample.vue'
 import { JlptLevel, type PagedResult } from '@/shared/types/api'
 import { catalogApi } from '../api/catalog.api'
 import CatalogImportPanel from '../components/CatalogImportPanel.vue'
 import CatalogNavigation from '../components/CatalogNavigation.vue'
 import CatalogReviewAction from '../components/CatalogReviewAction.vue'
 import CatalogReviewPanel from '../components/CatalogReviewPanel.vue'
+import KanjiReadings from '../components/KanjiReadings.vue'
 import { useCatalogPermission } from '../composables/useCatalogPermission'
 import { useCatalogReview } from '../composables/useCatalogReview'
 import { catalog, type CatalogBrowseItem, type CatalogImportResult } from '../types'
@@ -211,12 +213,12 @@ onUnmounted(() => {
         <div class="catalog-item">
           <div>
             <div class="word-line"><h2 lang="ja">{{ item.title }}</h2><span class="level-badge">N{{ item.level }}</span></div>
-            <p v-if="item.reading" class="reading" lang="ja">{{ item.reading }}</p>
+            <KanjiReadings v-if="item.content.kind === 'kanji'" :character="item.title"
+              :on-yomi="item.content.onYomi" :kun-yomi="item.content.kunYomi" />
             <p v-if="item.detail" class="muted">{{ item.detail }}</p>
             <p class="meaning">{{ item.content.meaning }}</p>
-            <p v-if="item.content.kind === 'grammar' && item.content.exampleSentence" class="example">
-              <span lang="ja">{{ item.content.exampleSentence }}</span><span v-if="item.content.exampleSentenceMeaning"> — {{ item.content.exampleSentenceMeaning }}</span>
-            </p>
+            <JapaneseExample v-if="item.content.kind === 'grammar' && item.content.exampleSentence"
+              :sentence="item.content.exampleSentence" :translation="item.content.exampleSentenceMeaning" />
           </div>
           <div class="catalog-actions">
             <CatalogReviewAction :review="review" :item-id="item.id" :title="item.title" />

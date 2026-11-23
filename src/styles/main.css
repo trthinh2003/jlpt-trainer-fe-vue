@@ -262,7 +262,15 @@ h2 {
 }
 .word-line {
   align-items: center;
+  flex-wrap: wrap;
 }
+.pronunciation-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+.pronunciation-line > span { min-width: 0; overflow-wrap: anywhere; }
 .word-line h2 {
   margin-bottom: 0;
   font-size: 24px;

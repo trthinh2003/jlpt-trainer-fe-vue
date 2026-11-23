@@ -4,6 +4,7 @@ import { ApiError, getErrorMessage } from '@/shared/api/http'
 import { CardType, JlptLevel } from '@/shared/types/api'
 import { reviewApi } from '@/features/review/api/review.api'
 import AppLoading from '@/shared/components/AppLoading.vue'
+import PronunciationButton from '@/shared/components/PronunciationButton.vue'
 import { downloadBlob } from '@/shared/download'
 import { mockTestApi } from '../api/mock-test.api'
 import type { MockTestReview } from '../types'
@@ -119,7 +120,10 @@ onUnmounted(() => {
         <label class="filter"><input v-model="errorsOnly" type="checkbox" /> Chỉ hiện câu sai hoặc bỏ trống</label>
         <p v-if="!visibleQuestions.length" class="muted">Bạn đã trả lời đúng tất cả các câu.</p>
         <article v-for="question in visibleQuestions" :key="question.index" class="vocab-card answer">
-          <h3>{{ question.index + 1 }}. <span lang="ja">{{ question.word }}</span></h3>
+          <div class="pronunciation-line">
+            <h3>{{ question.index + 1 }}. <span lang="ja">{{ question.word }}</span></h3>
+            <PronunciationButton :text="question.word" :reading="question.reading" />
+          </div>
           <p class="reading" lang="ja">{{ question.reading }}</p>
           <dl>
             <dt>Bạn chọn</dt>

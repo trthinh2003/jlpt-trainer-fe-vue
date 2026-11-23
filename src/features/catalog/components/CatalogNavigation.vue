@@ -5,6 +5,8 @@ import { catalog } from '../types'
 <template>
   <nav class="catalog-navigation" aria-label="Kho học liệu">
     <RouterLink v-for="item in catalog" :key="item.route" :to="{ name: item.route }">{{ item.label }}</RouterLink>
+    <RouterLink :to="{ name: 'video-lessons' }">Bài học video</RouterLink>
+    <RouterLink :to="{ name: 'audio-lessons' }">Học qua audio</RouterLink>
   </nav>
 </template>
 

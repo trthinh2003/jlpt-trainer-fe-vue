@@ -1,6 +1,7 @@
 import { ApiError, request } from '@/shared/api/http'
-import { CardType, type DueCard, type GrammarPoint, type JlptLevel, type Kanji, type ReviewGrade, type SubmitReviewResult } from '@/shared/types/api'
+import { CardType, type DueCard, type GrammarPoint, type JlptLevel, type Kanji, type PagedResult, type ReviewGrade, type SubmitReviewResult } from '@/shared/types/api'
 import { vocabApi } from '@/features/vocab/api/vocab.api'
+import type { StudyCardFilters, StudyCardItem } from '../types'
 
 export interface ReviewContent {
   prompt: string
@@ -27,6 +28,17 @@ export interface DueCardFilters {
 const path = '/reviewcards'
 
 export const reviewApi = {
+  list(filters: StudyCardFilters, signal: AbortSignal): Promise<PagedResult<StudyCardItem>> {
+    const params = new URLSearchParams({ pageNumber: String(filters.pageNumber) })
+    if (filters.cardType !== undefined) params.set('cardType', String(filters.cardType))
+    if (filters.level !== undefined) params.set('level', String(filters.level))
+    if (filters.due !== undefined) params.set('due', String(filters.due))
+    if (filters.search) params.set('search', filters.search)
+    return request(`${path}?${params}`, { signal })
+  },
+  remove(id: string, signal: AbortSignal): Promise<void> {
+    return request(`${path}/${encodeURIComponent(id)}`, { method: 'DELETE', signal })
+  },
   add(cardType: CardType, referenceId: string, signal?: AbortSignal): Promise<string> {
     return request(path, { method: 'POST', body: JSON.stringify({ cardType, referenceId }), signal })
   },

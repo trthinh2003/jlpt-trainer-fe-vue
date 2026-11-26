@@ -1,9 +1,16 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { pointDistance } from '../strokeGeometry'
 import type { Point, Stroke } from '../types'
 
-const strokes = defineModel<Stroke[]>({ required: true })
-const emit = defineEmits<{ drawing: [active: boolean] }>()
+const props = defineProps<{
+  strokes: readonly Stroke[]
+  guide?: readonly Stroke[]
+  disabled?: boolean
+  label: string
+  describedBy: string
+}>()
+const emit = defineEmits<{ stroke: [stroke: Stroke]; drawing: [active: boolean] }>()
 const canvas = ref<HTMLCanvasElement>()
 let context: CanvasRenderingContext2D | undefined
 let observer: ResizeObserver | undefined
@@ -11,13 +18,18 @@ let pointerId: number | undefined
 let currentStroke: Stroke = []
 const maxStrokes = 30
 const maxPointsPerStroke = 1024
+const ink = '#273650'
+const guideInk = '#287673'
 
-function drawStroke(stroke: Stroke): void {
+function drawStroke(stroke: Stroke, color = ink, width = .018): void {
   if (!context || !stroke.length) return
+  context.strokeStyle = color
+  context.fillStyle = color
+  context.lineWidth = width
   const first = stroke[0]
   context.beginPath()
   if (stroke.length === 1) {
-    context.arc(first.x, first.y, .009, 0, Math.PI * 2)
+    context.arc(first.x, first.y, width / 2, 0, Math.PI * 2)
     context.fill()
     return
   }
@@ -26,10 +38,34 @@ function drawStroke(stroke: Stroke): void {
   context.stroke()
 }
 
+function drawDirection(stroke: Stroke): void {
+  if (!context) return
+  const start = stroke[0]
+  const end = stroke[stroke.length - 1]
+  const approach = stroke.slice(0, -1).reverse().find(point => pointDistance(point, end) >= .015)
+  context.fillStyle = guideInk
+  context.beginPath()
+  context.arc(start.x, start.y, .014, 0, Math.PI * 2)
+  context.fill()
+  if (!approach) return
+
+  const angle = Math.atan2(end.y - approach.y, end.x - approach.x)
+  const wing = Math.min(.027, pointDistance(approach, end) * .85)
+  drawStroke([
+    { x: end.x - wing * Math.cos(angle + .6), y: end.y - wing * Math.sin(angle + .6) },
+    end,
+    { x: end.x - wing * Math.cos(angle - .6), y: end.y - wing * Math.sin(angle - .6) },
+  ], guideInk, .008)
+}
+
 function redraw(): void {
   if (!context) return
   context.clearRect(0, 0, 1, 1)
-  for (const stroke of strokes.value) drawStroke(stroke)
+  const active = props.strokes.length
+  props.guide?.forEach((stroke, index) => drawStroke(stroke, index === active ? guideInk : '#dddbd3', .014))
+  const currentGuide = props.guide?.[active]
+  if (currentGuide) drawDirection(currentGuide)
+  for (const stroke of props.strokes) drawStroke(stroke)
   drawStroke(currentStroke)
 }
 
@@ -40,9 +76,6 @@ function resize(): void {
   element.width = size
   element.height = size
   context.setTransform(size, 0, 0, size, 0, 0)
-  context.strokeStyle = '#273650'
-  context.fillStyle = '#273650'
-  context.lineWidth = .018
   context.lineCap = 'round'
   context.lineJoin = 'round'
   redraw()
@@ -57,7 +90,7 @@ function readPoint(event: PointerEvent, bounds: DOMRect): Point {
 }
 
 function startStroke(event: PointerEvent): void {
-  if (!canvas.value || pointerId !== undefined || event.button !== 0 || strokes.value.length >= maxStrokes) return
+  if (!canvas.value || props.disabled || pointerId !== undefined || event.button !== 0 || props.strokes.length >= maxStrokes) return
   pointerId = event.pointerId
   canvas.value.setPointerCapture(event.pointerId)
   currentStroke = [readPoint(event, canvas.value.getBoundingClientRect())]
@@ -69,7 +102,7 @@ function extendStroke(event: PointerEvent, bounds: DOMRect): void {
   const previous = currentStroke[currentStroke.length - 1]
   if (!previous) return
   const point = readPoint(event, bounds)
-  if (Math.hypot(point.x - previous.x, point.y - previous.y) < .002) return
+  if (pointDistance(point, previous) < .002) return
   if (currentStroke.length >= maxPointsPerStroke) return
   currentStroke.push(point)
   drawStroke([previous, point])
@@ -88,7 +121,8 @@ function endStroke(event: PointerEvent): void {
   const stroke = currentStroke
   pointerId = undefined
   currentStroke = []
-  strokes.value = [...strokes.value, stroke]
+  redraw()
+  emit('stroke', stroke)
   emit('drawing', false)
 }
 
@@ -100,7 +134,7 @@ function cancelStroke(event: PointerEvent): void {
   emit('drawing', false)
 }
 
-watch(strokes, redraw)
+watch([() => props.strokes, () => props.guide], redraw)
 onMounted(() => {
   const element = canvas.value
   if (!element) return
@@ -113,7 +147,8 @@ onUnmounted(() => observer?.disconnect())
 </script>
 
 <template>
-  <canvas ref="canvas" width="360" height="360" aria-label="Ô vẽ Kanji" aria-describedby="kanji-drawing-help"
+  <canvas ref="canvas" width="360" height="360" :aria-label="label" :aria-describedby="describedBy"
+    :aria-disabled="disabled"
     @pointerdown="startStroke" @pointermove="moveStroke" @pointerup="endStroke"
     @pointercancel="cancelStroke" @lostpointercapture="cancelStroke">
     Sử dụng ô tìm kiếm Kanji nếu thiết bị không hỗ trợ vẽ.
@@ -136,4 +171,5 @@ canvas {
   touch-action: none;
   cursor: crosshair;
 }
+canvas[aria-disabled="true"] { cursor: default; touch-action: auto; }
 </style>

@@ -66,6 +66,12 @@ export const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/review/cards',
+      name: 'study-cards',
+      component: () => import('@/features/review/pages/StudyCardsPage.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/account/password',
       name: 'change-password',
       component: () => import('@/features/auth/pages/ChangePasswordPage.vue'),

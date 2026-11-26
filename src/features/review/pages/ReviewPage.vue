@@ -1,13 +1,16 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import KanjiReadings from '@/features/catalog/components/KanjiReadings.vue'
+import KanjiPracticePanel from '@/features/kanji-drawing/components/KanjiPracticePanel.vue'
+import type { KanjiPracticeMode } from '@/features/kanji-drawing/types'
 import VocabImagePreview from '@/features/vocab/components/VocabImagePreview.vue'
 import { ApiError, getErrorMessage } from '@/shared/api/http'
 import AppLoading from '@/shared/components/AppLoading.vue'
 import JapaneseExample from '@/shared/components/JapaneseExample.vue'
 import PronunciationButton from '@/shared/components/PronunciationButton.vue'
-import { CardType, JlptLevel, ReviewGrade, type DueCard } from '@/shared/types/api'
+import { CardType, type JlptLevel, ReviewGrade, type DueCard } from '@/shared/types/api'
 import { reviewApi, type DueCardFilters, type ReviewContent } from '../api/review.api'
+import { cardTypeLabels, reviewCardTypes, reviewLevels } from '../types'
 
 const grades = [
   { value: ReviewGrade.Again, label: 'Quên' },
@@ -15,13 +18,6 @@ const grades = [
   { value: ReviewGrade.Good, label: 'Nhớ' },
   { value: ReviewGrade.Easy, label: 'Dễ' },
 ]
-const cardTypeLabels = {
-  [CardType.Vocab]: 'Từ vựng',
-  [CardType.Kanji]: 'Kanji',
-  [CardType.Grammar]: 'Ngữ pháp',
-}
-const cardTypes = [CardType.Vocab, CardType.Kanji, CardType.Grammar]
-const levels = [JlptLevel.N5, JlptLevel.N4, JlptLevel.N3, JlptLevel.N2, JlptLevel.N1]
 const selectedType = ref<CardType | ''>('')
 const selectedLevel = ref<JlptLevel | ''>('')
 const appliedFilters = ref<DueCardFilters>({})
@@ -51,8 +47,17 @@ const submitError = ref('')
 const submitFeedback = ref('')
 const isRevealed = ref(false)
 const isSubmitting = ref(false)
+const writeFromMeaning = ref(false)
+const showGuidedPractice = ref(false)
+const isKanji = computed(() => currentCard.value?.cardType === CardType.Kanji)
+const practiceMode = computed<KanjiPracticeMode | undefined>(() => {
+  if (!isKanji.value) return
+  if (isRevealed.value) return showGuidedPractice.value ? 'guided' : undefined
+  if (writeFromMeaning.value) return 'memory'
+})
 const pendingGrade = ref<{ grade: ReviewGrade; requestId: string } | null>(null)
 const revealButton = ref<HTMLButtonElement | null>(null)
+const practiceButton = ref<HTMLButtonElement | null>(null)
 const answerHeading = ref<HTMLHeadingElement | null>(null)
 const summaryHeading = ref<HTMLHeadingElement | null>(null)
 const retryContentButton = ref<HTMLButtonElement | null>(null)
@@ -89,6 +94,7 @@ watch([currentCard, contentAttempt], async ([card], _, onCleanup) => {
   submitError.value = ''
   pendingGrade.value = null
   isRevealed.value = false
+  showGuidedPractice.value = false
   if (!card) return
 
   const controller = new AbortController()
@@ -113,6 +119,16 @@ async function revealAnswer(): Promise<void> {
   isRevealed.value = true
   await nextTick()
   answerHeading.value?.focus({ preventScroll: true })
+}
+
+function togglePractice(): void {
+  if (isRevealed.value) showGuidedPractice.value = !showGuidedPractice.value
+  else writeFromMeaning.value = !writeFromMeaning.value
+}
+
+function closePractice(): void {
+  togglePractice()
+  practiceButton.value?.focus({ preventScroll: true })
 }
 
 function skipCard(): void {
@@ -189,6 +205,7 @@ onUnmounted(() => {
       <div class="page-heading">
         <h1>Ôn tập</h1>
         <nav class="review-actions" aria-label="Điều hướng học tập">
+          <RouterLink class="text-button" :to="{ name: 'study-cards' }">Bộ ôn cá nhân</RouterLink>
           <RouterLink class="text-button" :to="{ name: 'vocabs' }">Kho từ vựng</RouterLink>
           <RouterLink class="text-button" :to="{ name: 'dashboard' }">Tiến độ</RouterLink>
         </nav>
@@ -199,14 +216,14 @@ onUnmounted(() => {
           <label for="review-card-type">Loại thẻ</label>
           <select id="review-card-type" v-model="selectedType" :disabled="queueLoading">
             <option value="">Tất cả</option>
-            <option v-for="type in cardTypes" :key="type" :value="type">{{ cardTypeLabels[type] }}</option>
+            <option v-for="type in reviewCardTypes" :key="type" :value="type">{{ cardTypeLabels[type] }}</option>
           </select>
         </div>
         <div class="field">
           <label for="review-level">Cấp JLPT</label>
           <select id="review-level" v-model="selectedLevel" :disabled="queueLoading">
             <option value="">Tất cả</option>
-            <option v-for="level in levels" :key="level" :value="level">N{{ level }}</option>
+            <option v-for="level in reviewLevels" :key="level" :value="level">N{{ level }}</option>
           </select>
         </div>
         <button class="primary-button" type="submit" :disabled="queueLoading || isSubmitting">Tải thẻ đến hạn</button>
@@ -262,8 +279,9 @@ onUnmounted(() => {
             <span>{{ cardTypeLabels[currentCard.cardType] }}</span>
             <span>{{ isRevealed ? 'Mặt sau' : 'Mặt trước' }}</span>
           </div>
-          <div v-if="!isRevealed" class="card-face card-front">
-            <h2 lang="ja">{{ content.prompt }}</h2>
+          <div v-if="!isRevealed" class="card-face card-front" :class="{ 'memory-front': practiceMode === 'memory' }">
+            <h2 v-if="practiceMode === 'memory'" class="memory-prompt">{{ content.meaning }}</h2>
+            <h2 v-else lang="ja">{{ content.prompt }}</h2>
           </div>
           <div v-else class="card-face card-back">
             <div class="card-word">
@@ -274,11 +292,18 @@ onUnmounted(() => {
             <h2 ref="answerHeading" tabindex="-1">{{ content.meaning }}</h2>
             <p v-if="content.reading" class="reading" lang="ja">{{ content.reading }}</p>
             <VocabImagePreview v-if="content.imageVocabId" :vocab-id="content.imageVocabId" :word="content.prompt" />
-            <KanjiReadings v-if="currentCard.cardType === CardType.Kanji"
+            <KanjiReadings v-if="isKanji"
               :character="content.prompt" :on-yomi="content.onYomi" :kun-yomi="content.kunYomi" />
             <JapaneseExample v-if="content.example" class="card-example"
               :sentence="content.example" :translation="content.exampleMeaning" />
           </div>
+          <div v-if="isKanji" class="writing-controls">
+            <button ref="practiceButton" type="button" class="text-button" :disabled="isSubmitting"
+              :aria-expanded="Boolean(practiceMode)" :aria-controls="practiceMode ? 'review-kanji-practice' : undefined"
+              @click="togglePractice">{{ isRevealed ? 'Luyện viết' : 'Viết từ trí nhớ' }}</button>
+          </div>
+          <KanjiPracticePanel v-if="practiceMode" :key="`${currentCard.reviewCardId}:${practiceMode}`"
+            id="review-kanji-practice" :mode="practiceMode" :character="content.prompt" @close="closePractice" />
           <footer class="card-controls">
             <template v-if="!isRevealed">
               <button
@@ -377,12 +402,17 @@ onUnmounted(() => {
 .card-back h2:focus,
 .review-summary h2:focus { outline: none; }
 .card-front h2 { font-size: clamp(1.65rem, 5.5vw, 2.75rem); }
+.card-front.memory-front { flex: 0; min-height: 0; padding-block: 14px 4px; }
+.card-front .memory-prompt { font-size: clamp(1.25rem, 3.5vw, 1.75rem); }
 .card-back h2 { font-size: clamp(1.25rem, 3.5vw, 1.75rem); }
 .card-word { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; margin-bottom: 8px; }
 .card-prompt { margin: 0; color: #6b6558; font-weight: 700; }
 .card-back .reading { margin: 10px 0 0; font-size: .95rem; }
 .card-back :deep(.pronunciation-line) { justify-content: center; }
 .card-example { margin-top: 16px; padding-top: 12px; border-top: 1px solid #e8dccf; font-size: .875rem; }
+.writing-controls { text-align: center; }
+.writing-controls button { min-height: 40px; }
+.writing-controls + .card-controls, .kanji-practice + .card-controls { margin-top: 12px; }
 .card-controls { text-align: center; }
 .reveal-button { min-width: min(100%, 14rem); }
 .shortcut-hint { display: inline-block; margin-left: 12px; font-size: .875rem; }

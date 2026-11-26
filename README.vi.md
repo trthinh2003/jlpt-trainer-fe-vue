@@ -62,6 +62,8 @@ Trong kho Từ vựng, Kanji hoặc Ngữ pháp, bấm **Chọn nhiều** để 
 
 Trong **Ôn tập**, chọn **Loại thẻ** hoặc **Cấp JLPT** rồi bấm **Tải thẻ đến hạn** để bắt đầu lượt theo bộ lọc. Hai bộ lọc mặc định là **Tất cả**.
 
+Mở **Ôn tập → Bộ ôn cá nhân** để tìm thẻ đã lưu và xem lịch ôn tiếp theo. Có thể lọc theo loại thẻ, cấp JLPT hoặc trạng thái đến hạn. **Gỡ thẻ** bỏ thẻ khỏi bộ ôn và giữ lịch sử đã ôn.
+
 Ảnh minh họa từ vựng xuất hiện sau khi lật thẻ. Khi ảnh tải lỗi, chọn **Tải lại ảnh** hoặc tiếp tục chấm thẻ. Quản lý kho có thể tải hoặc gỡ ảnh trong phần sửa từ.
 
 Mở **Bài học video** từ thanh điều hướng kho, chọn cấp JLPT và bấm xem để phát hoặc tua MP4. Quản lý kho dùng **Đăng video** để xuất bản và **Gỡ bài** để gỡ khỏi danh sách.
@@ -69,6 +71,10 @@ Mở **Bài học video** từ thanh điều hướng kho, chọn cấp JLPT và
 Mở **Học qua audio** để nghe, đọc lời Nhật theo thời gian phát hoặc bấm vào câu để tua. Khi nghe xong, các từ được chọn cho bài nghe hiện lần lượt và có thể thêm vào bộ ôn.
 
 Mở **Kanji → Vẽ Kanji** và viết một chữ bằng chuột hoặc cảm ứng. Gợi ý tự hiện khi bạn dừng vẽ. Chọn một chữ để mở học liệu trong kho. Trình duyệt so nét với 640 mẫu N5–N3. [Ghi công KanjiVG](src/features/kanji-drawing/data/NOTICE.md)
+
+Chọn **Luyện viết** trên thẻ Kanji. Đặt bút ở chấm xanh và đi theo nét tô đậm. Trình duyệt kiểm tra sau mỗi lần nhấc bút. Bạn có thể thử lại nét hiện tại, lùi một nét hoặc viết lại cả chữ.
+
+Trong **Ôn tập**, chọn **Viết từ trí nhớ** trên thẻ Kanji để xem nghĩa và viết trên ô trống. Bấm **Hiện gợi ý** để xem mẫu nét. Chế độ áp dụng cho các thẻ Kanji tiếp theo trong lượt ôn đến khi bạn đóng. Lật thẻ để luyện theo mẫu hoặc tự chấm mức độ ghi nhớ.
 
 ## Nhập học liệu từ Excel
 

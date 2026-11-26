@@ -40,7 +40,8 @@ watch([strokes, drawing], ([completed, active], _, onCleanup) => {
     <h2 id="kanji-drawing-title">Vẽ Kanji để tra</h2>
     <p id="kanji-drawing-help" class="muted">Viết từng nét. Gợi ý tự hiện khi bạn dừng vẽ.</p>
     <div class="drawing-workspace">
-      <KanjiDrawingCanvas v-model="strokes" @drawing="drawing = $event" />
+      <KanjiDrawingCanvas :strokes="strokes" label="Ô vẽ Kanji" described-by="kanji-drawing-help"
+        @stroke="strokes = [...strokes, $event]" @drawing="drawing = $event" />
       <div class="drawing-results">
         <div class="drawing-actions">
           <button type="button" class="text-button" :disabled="!strokes.length || drawing"

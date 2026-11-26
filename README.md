@@ -62,6 +62,8 @@ Use **Chọn nhiều** (Select multiple) in the vocabulary, Kanji, or grammar ca
 
 In **Ôn tập** (Review), choose a card type or JLPT level, then select **Tải thẻ đến hạn** (Load due cards) to start a filtered round. Both filters default to **Tất cả** (All).
 
+Open **Ôn tập → Bộ ôn cá nhân** (My study cards) to find saved cards and check their next review times. Filter by card type, level or due status. **Gỡ thẻ** (Remove card) removes a card from your queue and keeps its review history.
+
 Vocabulary images appear after you reveal the answer. If an image fails to load, choose **Tải lại ảnh** (Reload image) or continue grading. Catalog managers can upload or remove the image from the vocabulary editor.
 
 Open **Bài học video** (Video lessons) from the catalog navigation to browse by JLPT level and play or seek through a lesson. Catalog managers can publish and unpublish MP4 lessons from this page.
@@ -69,6 +71,10 @@ Open **Bài học video** (Video lessons) from the catalog navigation to browse 
 Open **Học qua audio** (Learn with audio) to listen with synchronized Japanese lyrics. Click a line to seek. Vocabulary appears when playback ends, and each word can be added to the review queue.
 
 Open **Kanji → Vẽ Kanji** (Draw kanji) and write one character with a mouse or touch. Suggestions appear when you pause. Select one to open it in the catalog. The browser matches strokes against 640 N5–N3 templates. [KanjiVG attribution](src/features/kanji-drawing/data/NOTICE.md)
+
+Choose **Luyện viết** (Writing practice) on a kanji card. Start at the green dot and follow the highlighted stroke. The browser checks each stroke as you lift your pen. You can retry a stroke, go back one stroke, or start the character again.
+
+In **Ôn tập** (Review), use **Viết từ trí nhớ** (Write from memory) on a kanji flashcard to see the meaning and a blank canvas. **Hiện gợi ý** (Show hint) reveals the stroke guide. The mode stays active for later kanji in the session until you close it. Flip the card to practice tracing or choose your review grade.
 
 ## Import study materials from Excel
 

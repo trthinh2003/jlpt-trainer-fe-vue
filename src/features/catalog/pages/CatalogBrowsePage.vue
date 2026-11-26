@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onUnmounted, ref, watch } from 'vue'
 import KanjiDrawingPanel from '@/features/kanji-drawing/components/KanjiDrawingPanel.vue'
+import KanjiPracticePanel from '@/features/kanji-drawing/components/KanjiPracticePanel.vue'
 import { ApiError, getErrorMessage } from '@/shared/api/http'
 import AppLoading from '@/shared/components/AppLoading.vue'
 import JapaneseExample from '@/shared/components/JapaneseExample.vue'
@@ -29,6 +30,7 @@ const listError = ref('')
 const actionError = ref('')
 const showImport = ref(false)
 const showDrawing = ref(false)
+const practicingId = ref<string>()
 const editing = ref<CatalogBrowseItem | null>(null)
 const editorInput = ref<HTMLInputElement | null>(null)
 const editError = ref('')
@@ -42,6 +44,7 @@ const review = useCatalogReview({
 const { canManageCatalog, permissionError, loadCatalogPermission, refreshAfterForbidden } = useCatalogPermission()
 let listRequest: AbortController | undefined
 let editRequest: AbortController | undefined
+let practiceTrigger: HTMLButtonElement | undefined
 
 async function load(): Promise<void> {
   listRequest?.abort()
@@ -120,6 +123,21 @@ function chooseDrawnKanji(character: string): void {
   showDrawing.value = false
 }
 
+function togglePractice(itemId: string, event: MouseEvent): void {
+  if (practicingId.value === itemId) {
+    closePractice()
+    return
+  }
+  practiceTrigger = event.currentTarget as HTMLButtonElement
+  practicingId.value = itemId
+}
+
+function closePractice(): void {
+  practicingId.value = undefined
+  practiceTrigger?.focus()
+  practiceTrigger = undefined
+}
+
 function refreshAfterImport(summary: CatalogImportResult): void {
   if (summary.successCount > 0) void load()
 }
@@ -140,7 +158,11 @@ watch(searchInput, (value, _, onCleanup) => {
   onCleanup(() => clearTimeout(timer))
 })
 watch([level, search], () => { page.value = 1 })
-watch([() => props.kind, level, search, page], load, { immediate: true })
+watch([() => props.kind, level, search, page], () => {
+  practicingId.value = undefined
+  practiceTrigger = undefined
+  void load()
+}, { immediate: true })
 onUnmounted(() => {
   listRequest?.abort()
   editRequest?.abort()
@@ -235,11 +257,17 @@ onUnmounted(() => {
               :sentence="item.content.exampleSentence" :translation="item.content.exampleSentenceMeaning" />
           </div>
           <div class="catalog-actions">
+            <button v-if="item.content.kind === 'kanji'" class="text-button" type="button"
+              :aria-label="`Luyện viết ${item.title}`" :aria-expanded="practicingId === item.id"
+              :aria-controls="practicingId === item.id ? 'kanji-practice-panel' : undefined"
+              @click="togglePractice(item.id, $event)">Luyện viết</button>
             <CatalogReviewAction :review="review" :item-id="item.id" :title="item.title" />
             <button v-if="canManageCatalog" class="text-button" type="button"
               :aria-label="`Sửa ${item.title}`" :disabled="saving || editing?.id === item.id" @click="edit(item)">Sửa</button>
           </div>
         </div>
+        <KanjiPracticePanel v-if="item.content.kind === 'kanji' && practicingId === item.id"
+          id="kanji-practice-panel" :character="item.title" @close="closePractice" />
       </article>
     </div>
     <nav v-if="result && result.totalPages > 1" class="pagination" aria-label="Phân trang học liệu">

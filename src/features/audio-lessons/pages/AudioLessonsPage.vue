@@ -5,7 +5,8 @@ import { useCatalogPermission } from '@/features/catalog/composables/useCatalogP
 import { ApiError, getErrorMessage } from '@/shared/api/http'
 import AppLoading from '@/shared/components/AppLoading.vue'
 import { JlptLevel } from '@/shared/types/api'
-import { audioLessonsApi, type AudioLesson, type AudioLessonPage } from '../api/audio-lessons.api'
+import { audioLessonsApi } from '../api/audio-lessons.api'
+import type { AudioLesson, AudioLessonPage } from '../types'
 import AudioLessonEditor from '../components/AudioLessonEditor.vue'
 import AudioLessonPlayer from '../components/AudioLessonPlayer.vue'
 

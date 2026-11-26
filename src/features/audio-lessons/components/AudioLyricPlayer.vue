@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, onUnmounted, ref, watch } from 'vue'
-import type { LyricLine } from '../api/audio-lessons.api'
+import { computed, nextTick, onUnmounted, ref, watch } from 'vue'
+import type { AudioLessonWord, LyricLine } from '../types'
+import AudioLyricText from './AudioLyricText.vue'
 
 const props = defineProps<{
   title: string
@@ -16,7 +17,7 @@ const captionLines = ref<HTMLElement>()
 const lyricProgress = ref<HTMLProgressElement>()
 const lyrics = computed(() => props.lyrics.map(line => {
   const [text, ...support] = line.text.split('\n')
-  return { startMs: line.startMs, text, support: support.filter(Boolean) }
+  return { startMs: line.startMs, text, support: support.filter(Boolean), links: line.links }
 }))
 const failed = ref(false)
 const coverFailed = ref(false)
@@ -24,6 +25,9 @@ const durationMs = ref(0)
 const activeLyric = ref(-1)
 const currentLyric = computed(() => activeLyric.value < 0 ? undefined : lyrics.value[activeLyric.value])
 const ready = ref(false)
+const lookupWord = ref<AudioLessonWord>()
+const closeButton = ref<HTMLButtonElement>()
+let lookupTrigger: HTMLElement | undefined
 let positionMs = 0
 let frame: number | undefined
 
@@ -32,7 +36,7 @@ watch(activeLyric, (index, previous) => {
 
   const box = lyricBox.value
   if (!box) return
-  const line = box.querySelector<HTMLElement>('[aria-current="true"]')
+  const line = box.querySelector('[aria-current="true"]')?.closest('li')
   if (!line) {
     box.scrollTo({ top: 0, behavior: 'instant' })
     return
@@ -99,9 +103,27 @@ function onMetadata(): void {
 }
 
 function seek(startMs: number): void {
-  if (!player.value || !ready.value) return
+  if (!player.value || !canSeek(startMs)) return
   player.value.currentTime = startMs / 1000
   updateTime()
+}
+
+function canSeek(startMs: number): boolean {
+  return ready.value && (durationMs.value <= 0 || startMs <= durationMs.value)
+}
+
+async function showWord(word: AudioLessonWord, event: MouseEvent): Promise<void> {
+  player.value?.pause()
+  lookupTrigger = event.currentTarget instanceof HTMLElement ? event.currentTarget : undefined
+  lookupWord.value = word
+  await nextTick()
+  closeButton.value?.focus()
+}
+
+function closeLookup(): void {
+  lookupWord.value = undefined
+  if (lookupTrigger?.isConnected) lookupTrigger.focus()
+  lookupTrigger = undefined
 }
 
 function audioError(): void {
@@ -132,7 +154,11 @@ onUnmounted(stopClock)
     <div class="listening-stage" :class="{ 'cover-missing': !coverUrl || coverFailed }">
       <div class="caption">
         <div ref="captionLines" class="caption-lines">
-          <p v-if="currentLyric?.text" class="caption-japanese" lang="ja">{{ currentLyric.text }}</p>
+          <p v-if="currentLyric?.text" class="caption-japanese" lang="ja">
+            <AudioLyricText v-if="currentLyric.links?.length" :text="currentLyric.text"
+              :links="currentLyric.links" @lookup="showWord" />
+            <template v-else>{{ currentLyric.text }}</template>
+          </p>
           <p v-else-if="!failed" class="caption-idle">{{ ready ? '♪' : 'Đang tải audio…' }}</p>
           <p v-for="(line, index) in currentLyric?.support" :key="index" class="caption-support">{{ line }}</p>
         </div>
@@ -148,13 +174,24 @@ onUnmounted(stopClock)
         @loadedmetadata="onMetadata" @playing="startClock" @pause="stopClock" @waiting="stopClock"
         @ended="audioEnded" @error="audioError" />
     </div>
+    <section v-if="lookupWord" class="lyric-lookup" aria-label="Tra từ trong lời" @keydown.esc="closeLookup">
+      <div>
+        <strong lang="ja">{{ lookupWord.word }}</strong>
+        <span lang="ja">（{{ lookupWord.reading }}）</span>
+        <p>{{ lookupWord.meaning }}</p>
+      </div>
+      <button ref="closeButton" type="button" class="text-button" @click="closeLookup">Đóng tra từ</button>
+    </section>
     <ol ref="lyricBox" class="lyrics" aria-label="Lời tiếng Nhật">
-      <li v-for="(line, index) in lyrics" :key="line.startMs">
-        <button type="button" :aria-current="index === activeLyric ? 'true' : undefined"
-          :disabled="!ready || (durationMs > 0 && line.startMs > durationMs)" @click="seek(line.startMs)">
-          <span class="lyric-time">{{ timestamp(line.startMs) }}</span>
-          <span lang="ja">{{ line.text || '♪' }}</span>
+      <li v-for="(line, index) in lyrics" :key="line.startMs" class="lyric-row"
+        :class="{ active: index === activeLyric, seekable: canSeek(line.startMs) }" @click="seek(line.startMs)">
+        <button type="button" class="lyric-time" :aria-current="index === activeLyric ? 'true' : undefined"
+          :aria-label="`Tua đến ${timestamp(line.startMs)}, ${line.text || 'nhạc nền'}`"
+          :disabled="!canSeek(line.startMs)" @click.stop="seek(line.startMs)">
+          {{ timestamp(line.startMs) }}
         </button>
+        <AudioLyricText v-if="line.links?.length" :text="line.text" :links="line.links" @lookup="showWord" />
+        <span v-else lang="ja">{{ line.text || '♪' }}</span>
       </li>
     </ol>
   </div>
@@ -177,6 +214,7 @@ onUnmounted(stopClock)
 .cover-missing .caption { grid-column: 1 / -1; }
 .caption p { margin: 0; overflow-wrap: anywhere; }
 .caption-japanese { font-size: clamp(1.3rem, 3vw, 2.1rem); font-weight: 750; line-height: 1.5; }
+.caption-japanese { --lyric-word-color: #ffcb9f; }
 .caption .caption-support { color: #e7d8d7; font-size: .975rem; margin-top: 4px; }
 .caption-idle { color: #e7d8d7; }
 .caption-progress { appearance: none; width: 100%; height: 5px; border: 0; border-radius: 6px; overflow: hidden; margin-top: 16px; background: #574b62; color: #f3b786; }
@@ -187,10 +225,12 @@ onUnmounted(stopClock)
 .cover-frame img { display: block; width: 100%; height: clamp(130px, 23vw, 240px); object-fit: contain; }
 audio { display: block; width: 100%; grid-column: 1 / -1; }
 .lyrics { position: relative; max-height: 220px; overflow-y: auto; overscroll-behavior: contain; margin: 12px 0 0; padding: 8px; border-radius: 10px; background: #f1ede2; list-style: none; }
-.lyrics button { display: grid; grid-template-columns: 4.25rem minmax(0, 1fr); gap: 6px; width: 100%; padding: 9px 10px; border: 0; border-radius: 8px; background: transparent; color: #514c41; text-align: left; font: inherit; overflow-wrap: anywhere; cursor: pointer; }
-.lyrics button[aria-current] { background: #fffdf8; color: #852229; }
-.lyrics button:disabled { cursor: default; }
-.lyric-time { font-size: .825rem; font-variant-numeric: tabular-nums; }
+.lyric-row { display: grid; grid-template-columns: 4.25rem minmax(0, 1fr); gap: 6px; align-items: start; padding: 9px 10px; border-radius: 8px; color: #514c41; overflow-wrap: anywhere; }
+.lyric-row.active { background: #fffdf8; color: #852229; }
+.lyric-row.seekable, .lyric-time:not(:disabled) { cursor: pointer; }
+.lyric-time { justify-self: start; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; font-size: .825rem; font-variant-numeric: tabular-nums; }
+.lyric-lookup { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: start; gap: 4px 12px; margin-top: 10px; padding: 10px 12px; border: 1px solid #ded0c0; border-radius: 10px; background: #fffdf8; overflow-wrap: anywhere; }
+.lyric-lookup p { margin: 3px 0 0; }
 @media (max-width: 620px) {
   .listening-stage { grid-template-columns: minmax(0, 1fr); gap: 12px; }
   .caption { height: 150px; grid-row: 2; }

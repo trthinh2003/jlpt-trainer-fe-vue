@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { onUnmounted, ref, watch } from 'vue'
+import { nextTick, onUnmounted, ref, watch } from 'vue'
 import { vocabApi } from '@/features/vocab/api/vocab.api'
 import type { Vocab } from '@/features/vocab/types'
 import { ApiError, getErrorMessage } from '@/shared/api/http'
 import AppLoading from '@/shared/components/AppLoading.vue'
 import { JlptLevel } from '@/shared/types/api'
-import { audioLessonsApi, type LyricLine } from '../api/audio-lessons.api'
+import { audioLessonsApi } from '../api/audio-lessons.api'
+import type { LyricLine } from '../types'
 import AudioLyricPlayer from './AudioLyricPlayer.vue'
 
 interface AudioPreview {
@@ -19,11 +20,14 @@ const levels = [JlptLevel.N5, JlptLevel.N4, JlptLevel.N3, JlptLevel.N2, JlptLeve
 const title = ref('')
 const level = ref(JlptLevel.N5)
 const lyrics = ref('')
+const lyricsField = ref<HTMLTextAreaElement>()
 const audio = ref<File>()
 const cover = ref<File>()
 const query = ref('')
 const results = ref<Vocab[]>([])
 const selected = ref<Vocab[]>([])
+const markWordId = ref('')
+const markError = ref('')
 const searching = ref(false)
 const searchError = ref('')
 const busy = ref(false)
@@ -42,6 +46,11 @@ const maxAudioBytes = 25 * 1024 * 1024
 const maxCoverBytes = 5 * 1024 * 1024
 
 watch([audio, cover, lyrics], closePreview, { flush: 'sync' })
+watch(() => selected.value.map(word => word.id), (ids) => {
+  if (!ids.includes(markWordId.value)) markWordId.value = ids[0] ?? ''
+  markError.value = ''
+  closePreview()
+}, { flush: 'sync' })
 
 watch(query, (value, _, onCleanup) => {
   const controller = new AbortController()
@@ -74,6 +83,49 @@ function cancelLyricsRead(): void {
   lyricReadVersion++
   readingLyrics.value = false
   lyricsError.value = ''
+  markError.value = ''
+}
+
+const wordMarker = /\[\[([^\[\]|\r\n]+)\|([0-9a-f]{32})\]\]/giu
+
+async function markLyricWord(): Promise<void> {
+  const field = lyricsField.value
+  if (!field || !markWordId.value) return
+  const source = lyrics.value
+  const start = field.selectionStart
+  const end = field.selectionEnd
+  const surface = source.slice(start, end)
+  const lineStart = start === 0 ? 0 : source.lastIndexOf('\n', start - 1) + 1
+  const timestamps = source.slice(lineStart).match(/^\s*(?:\[\d{1,3}:\d{2}(?:[.:]\d{1,3})?\])+/u)?.[0]
+  const overlaps = [...source.matchAll(wordMarker)].some(match =>
+    start < match.index + match[0].length && end > match.index)
+  if (!surface.trim() || /[\[\]|\r\n]/u.test(surface) || !timestamps ||
+      start < lineStart + timestamps.length || overlaps) {
+    markError.value = 'Bôi đen phần lời Nhật cần gắn từ. Chọn trong một dòng và bỏ qua mốc thời gian.'
+    field.focus()
+    return
+  }
+
+  const text = surface.trim()
+  const offset = start + surface.indexOf(text)
+  const marker = `[[${text}|${markWordId.value.replaceAll('-', '')}]]`
+  if (source.length - text.length + marker.length > maxLyrics) {
+    markError.value = 'Lời vượt quá 28.000 ký tự sau khi gắn từ.'
+    return
+  }
+  markError.value = ''
+  lyrics.value = source.slice(0, offset) + marker + source.slice(offset + text.length)
+  await nextTick()
+  field.focus()
+  field.setSelectionRange(offset + marker.length, offset + marker.length)
+}
+
+function removeWord(index: number): void {
+  const [word] = selected.value.splice(index, 1)
+  if (!word) return
+  const id = word.id.replaceAll('-', '').toLowerCase()
+  lyrics.value = lyrics.value.replace(wordMarker, (marker, text: string, target: string) =>
+    id === target.toLowerCase() ? text : marker)
 }
 
 async function importLyrics(event: Event): Promise<void> {
@@ -127,7 +179,7 @@ async function showPreview(): Promise<void> {
   previewRequest = request
   previewLoading.value = true
   try {
-    const timeline = await audioLessonsApi.previewLyrics(lyrics.value, request.signal)
+    const timeline = await audioLessonsApi.previewLyrics(lyrics.value, selected.value.map(word => word.id), request.signal)
     if (request.signal.aborted) return
     preview.value = {
       audioUrl: URL.createObjectURL(audioFile),
@@ -215,11 +267,22 @@ onUnmounted(() => {
         <label for="audio-lrc">Nạp lời từ file .lrc</label>
         <input id="audio-lrc" type="file" accept=".lrc,.txt,text/plain" @change="importLyrics" />
         <label for="audio-lyrics">Lời Nhật có mốc thời gian</label>
-        <textarea id="audio-lyrics" v-model="lyrics" rows="5" :maxlength="maxLyrics" required @input="cancelLyricsRead"
+        <textarea id="audio-lyrics" ref="lyricsField" v-model="lyrics" rows="5" :maxlength="maxLyrics" required @input="cancelLyricsRead"
           placeholder="[00:05.20]おはよう。" />
         <small class="muted">Đặt dòng tiếng Nhật trước. Romaji và bản dịch có thể dùng cùng mốc thời gian ở các dòng kế tiếp.</small>
         <p v-if="readingLyrics" class="muted" role="status">Đang đọc file LRC…</p>
         <p v-if="lyricsError" class="error" role="alert">{{ lyricsError }}</p>
+        <div v-if="selected.length" class="mark-lyric">
+          <small class="muted">Bôi đen chữ trong một dòng lời Nhật, rồi gắn với từ đã chọn.</small>
+          <div class="mark-lyric-actions">
+            <label for="audio-lyric-word">Từ gắn vào lời</label>
+            <select id="audio-lyric-word" v-model="markWordId">
+              <option v-for="word in selected" :key="word.id" :value="word.id">{{ word.word }}（{{ word.reading }}）</option>
+            </select>
+            <button type="button" class="text-button" :disabled="readingLyrics" @click="markLyricWord">Gắn vào lời</button>
+          </div>
+          <p v-if="markError" class="error" role="alert">{{ markError }}</p>
+        </div>
         <div class="preview-actions">
           <button type="button" class="text-button" aria-controls="audio-lyrics-preview"
             :aria-expanded="Boolean(preview)"
@@ -251,7 +314,7 @@ onUnmounted(() => {
         <ul v-if="selected.length" class="word-picker selected-words" aria-label="Từ đã chọn">
           <li v-for="(word, index) in selected" :key="word.id">
             <span lang="ja">{{ word.word }}</span>
-            <button type="button" class="text-button" :aria-label="`Bỏ ${word.word}`" @click="selected.splice(index, 1)">Bỏ</button>
+            <button type="button" class="text-button" :aria-label="`Bỏ ${word.word}`" @click="removeWord(index)">Bỏ</button>
           </li>
         </ul>
       </div>
@@ -266,6 +329,7 @@ fieldset { padding: 0; margin: 0; border: 0; min-width: 0; }
 input[type=file], textarea { width: 100%; }
 textarea { resize: vertical; border: 1px solid #d5caba; border-radius: 8px; padding: 8px 12px; font: inherit; }
 .preview-actions { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.mark-lyric-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 12px; }
 .lyrics-preview { min-width: 0; }
 .word-picker { padding: 0; margin: 4px 0; list-style: none; }
 .word-picker li { display: flex; justify-content: space-between; align-items: center; gap: 8px; overflow-wrap: anywhere; }

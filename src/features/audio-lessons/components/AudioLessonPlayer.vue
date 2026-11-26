@@ -6,8 +6,8 @@ import { getErrorMessage } from '@/shared/api/http'
 import AppLoading from '@/shared/components/AppLoading.vue'
 import PronunciationButton from '@/shared/components/PronunciationButton.vue'
 import { CardType } from '@/shared/types/api'
-import { audioLessonsApi, type AudioLesson, type AudioLessonWord, type AudioPlayback } from '../api/audio-lessons.api'
-
+import { audioLessonsApi } from '../api/audio-lessons.api'
+import type { AudioLesson, AudioLessonWord, AudioPlayback } from '../types'
 import AudioLyricPlayer from './AudioLyricPlayer.vue'
 
 const props = defineProps<{ lesson: AudioLesson }>()

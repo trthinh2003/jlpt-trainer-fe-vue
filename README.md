@@ -68,6 +68,8 @@ Open **Bài học video** (Video lessons) from the catalog navigation to browse 
 
 Open **Học qua audio** (Learn with audio) to listen with synchronized Japanese lyrics. Click a line to seek. Vocabulary appears when playback ends, and each word can be added to the review queue.
 
+Open **Kanji → Vẽ Kanji** (Draw kanji) and write one character with a mouse or touch. Suggestions appear when you pause. Select one to open it in the catalog. The browser matches strokes against 640 N5–N3 templates. [KanjiVG attribution](src/features/kanji-drawing/data/NOTICE.md)
+
 ## Import study materials from Excel
 
 Catalog managers can open **Nhập Excel** (Import Excel) on the vocabulary, kanji, or grammar page. Download the template, fill its first worksheet, and select an `.xlsx` file up to 5 MB. Choose **Xem trước** (Preview) to see how many rows are ready, how many are duplicates, and which Excel rows have errors. Choose **Xác nhận nhập** (Confirm import) to save valid new rows and see the actual import count. Learners can browse all three catalogs and add items to their personal review queue.

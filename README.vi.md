@@ -68,6 +68,8 @@ Mở **Bài học video** từ thanh điều hướng kho, chọn cấp JLPT và
 
 Mở **Học qua audio** để nghe, đọc lời Nhật theo thời gian phát hoặc bấm vào câu để tua. Khi nghe xong, các từ được chọn cho bài nghe hiện lần lượt và có thể thêm vào bộ ôn.
 
+Mở **Kanji → Vẽ Kanji** và viết một chữ bằng chuột hoặc cảm ứng. Gợi ý tự hiện khi bạn dừng vẽ. Chọn một chữ để mở học liệu trong kho. Trình duyệt so nét với 640 mẫu N5–N3. [Ghi công KanjiVG](src/features/kanji-drawing/data/NOTICE.md)
+
 ## Nhập học liệu từ Excel
 
 Tài khoản quản lý kho mở **Nhập Excel** tại trang **Từ vựng**, **Kanji** hoặc **Ngữ pháp**. Tải mẫu của nhóm đã chọn, điền trang tính đầu và chọn file `.xlsx` tối đa 5 MB. Bấm **Xem trước** để kiểm tra số dòng sẵn sàng, dòng trùng và lỗi theo số dòng Excel. Bấm **Xác nhận nhập** để ghi các dòng mới hợp lệ và xem số dòng thực tế đã nhập. Người học có thể duyệt và thêm mục vào bộ ôn cá nhân.

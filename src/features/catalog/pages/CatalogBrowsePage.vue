@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onUnmounted, ref, watch } from 'vue'
+import KanjiDrawingPanel from '@/features/kanji-drawing/components/KanjiDrawingPanel.vue'
 import { ApiError, getErrorMessage } from '@/shared/api/http'
 import AppLoading from '@/shared/components/AppLoading.vue'
 import JapaneseExample from '@/shared/components/JapaneseExample.vue'
@@ -27,6 +28,7 @@ const loading = ref(false)
 const listError = ref('')
 const actionError = ref('')
 const showImport = ref(false)
+const showDrawing = ref(false)
 const editing = ref<CatalogBrowseItem | null>(null)
 const editorInput = ref<HTMLInputElement | null>(null)
 const editError = ref('')
@@ -110,6 +112,14 @@ function clearSearch(): void {
   search.value = ''
 }
 
+function chooseDrawnKanji(character: string): void {
+  level.value = ''
+  page.value = 1
+  searchInput.value = character
+  search.value = character
+  showDrawing.value = false
+}
+
 function refreshAfterImport(summary: CatalogImportResult): void {
   if (summary.successCount > 0) void load()
 }
@@ -117,6 +127,7 @@ function refreshAfterImport(summary: CatalogImportResult): void {
 watch(() => props.kind, () => {
   result.value = null
   showImport.value = false
+  showDrawing.value = false
   editing.value = null
   editRequest?.abort()
   saving.value = false
@@ -184,9 +195,12 @@ onUnmounted(() => {
       <label for="catalog-search">{{ searchLabel }}</label>
       <div class="search-controls">
         <input id="catalog-search" v-model="searchInput" type="search" maxlength="100" />
+        <button v-if="kind === 'kanji'" class="text-button" type="button" aria-controls="kanji-drawing-panel"
+          :aria-expanded="showDrawing" @click="showDrawing = !showDrawing">{{ showDrawing ? 'Đóng ô vẽ' : 'Vẽ Kanji' }}</button>
         <button v-if="searchInput" class="text-button" type="button" @click="clearSearch">Xóa tìm kiếm</button>
       </div>
     </div>
+    <KanjiDrawingPanel v-if="kind === 'kanji' && showDrawing" @choose="chooseDrawnKanji" />
     <div class="toolbar">
       <label for="catalog-level">Cấp độ</label>
       <select id="catalog-level" v-model.number="level">
@@ -243,6 +257,7 @@ onUnmounted(() => {
 .catalog-actions, .search-controls { display: flex; align-items: center; gap: 12px; }
 .catalog-actions { flex-wrap: wrap; }
 .search-field { max-width: 540px; }
-.search-controls input { flex: 1; min-width: 0; }
+.search-controls { flex-wrap: wrap; }
+.search-controls input { flex: 1 1 180px; min-width: 0; }
 .search-controls button { flex-shrink: 0; }
 </style>
